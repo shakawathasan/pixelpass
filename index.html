@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelPass — Offline Image Transfer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+    --accent: #00ff9d; --accent2: #ff3cac; --text: #e8e8f0;
+    --muted: #555570; --card: #0f0f18;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,255,157,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,157,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; position: relative; z-index: 1; }
+  header { text-align: center; margin-bottom: 2.5rem; padding-top: 2rem; }
+  .logo { font-size: 0.72rem; font-family: 'Space Mono', monospace; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 0.5rem; }
+  h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; line-height: 1; background: linear-gradient(135deg, #fff 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.6rem; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; font-family: 'Space Mono', monospace; }
+  .tabs { display: flex; margin-bottom: 1.75rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .tab { flex: 1; padding: 0.85rem; background: var(--surface); border: none; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--border); }
+  .tab:last-child { border-right: none; }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--accent); color: #000; font-weight: 700; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card-label { font-family: 'Space Mono', monospace; font-size: 0.68rem; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .card-label::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+  .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: rgba(0,255,157,0.04); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+  .drop-text { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.78rem; line-height: 1.6; }
+  .drop-text strong { color: var(--text); }
+  .preview-img { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; margin: 0 auto; border: 1px solid var(--border); }
+  .slider-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .slider-header { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+  .slider-label { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .slider-val { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 700; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .slider-hints { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--muted); margin-top: 0.2rem; }
+  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; padding: 0.75rem 1rem; background: var(--surface); border-radius: 8px; font-family: 'Space Mono', monospace; font-size: 0.72rem; }
+  .stat { color: var(--muted); }
+  .stat span { color: var(--accent); font-weight: 700; }
+  .btn-row { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 1rem; }
+  .btn { padding: 0.65rem 1.3rem; border-radius: 6px; border: none; font-family: 'Space Mono', monospace; font-size: 0.76rem; letter-spacing: 0.05em; cursor: pointer; transition: all 0.18s; text-transform: uppercase; }
+  .btn-primary { background: var(--accent); color: #000; font-weight: 700; }
+  .btn-primary:hover { background: #00e088; transform: translateY(-1px); }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--accent2); border: 1px solid rgba(255,60,172,0.4); }
+  .btn-danger:hover { background: rgba(255,60,172,0.08); }
+  .info-banner { background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.2); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--accent); margin-bottom: 1rem; line-height: 1.7; }
+  .copy-flash { display: none; font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--accent); align-items: center; gap: 0.4rem; margin-top: 0.6rem; }
+  .copy-flash.show { display: flex; }
+  .progress-wrap { margin-top: 1rem; display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-bar-bg { background: var(--surface); border-radius: 99px; height: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.3s; }
+  .error-msg { display: none; background: rgba(255,60,172,0.08); border: 1px solid rgba(255,60,172,0.3); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--accent2); margin-top: 1rem; line-height: 1.5; }
+  .error-msg.show { display: block; }
+  .how { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1.75rem; }
+  .how-title { font-family: 'Space Mono', monospace; font-size: 0.68rem; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; margin-bottom: 1rem; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.85rem; }
+  .step { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem; }
+  .step-num { font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--accent); font-weight: 700; line-height: 1; margin-bottom: 0.4rem; }
+  .step-text { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+  @media (max-width: 520px) { .slider-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">// offline image transfer</div>
+    <h1>PixelPass</h1>
+    <p class="subtitle">image → .pixl file → image &nbsp;|&nbsp; no server, no storage</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('encode')">📤 &nbsp;Encode (Sender)</button>
+    <button class="tab" onclick="switchTab('decode')">📥 &nbsp;Decode (Receiver)</button>
+  </div>
+
+  <!-- ENCODE PANEL -->
+  <div class="panel active" id="panel-encode">
+    <div class="card">
+      <div class="card-label">Compression Settings</div>
+      <div class="slider-row">
+        <div>
+          <div class="slider-header">
+            <span class="slider-label">Quality</span>
+            <span class="slider-val" id="qualityVal">75%</span>
+          </div>
+          <input type="range" id="qualitySlider" min="10" max="95" value="75"
+            oninput="document.getElementById('qualityVal').textContent=this.value+'%'; recompress()">
+          <div class="slider-hints"><span>Smaller</span><span>Sharper</span></div>
+        </div>
+        <div>
+          <div class="slider-header">
+            <span class="slider-label">Max Resolution</span>
+            <span class="slider-val" id="sizeVal">800px</span>
+          </div>
+          <input type="range" id="sizeSlider" min="200" max="1920" step="100" value="800"
+            oninput="document.getElementById('sizeVal').textContent=this.value+'px'; recompress()">
+          <div class="slider-hints"><span>200px</span><span>1920px</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Step 1 — Pick your image</div>
+      <div class="dropzone" id="dropzone">
+        <input type="file" accept="image/*" id="fileInput" onchange="handleFile(this.files[0])">
+        <div class="drop-icon">🖼️</div>
+        <div class="drop-text"><strong>Drop image here</strong><br>or click to browse — stays in memory only</div>
+      </div>
+    </div>
+
+    <div id="encode-result" style="display:none">
+      <div class="card">
+        <div class="card-label">Step 2 — Preview</div>
+        <img id="preview" class="preview-img" alt="preview">
+        <div class="stats" id="stats"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Step 3 — Send to your friend</div>
+        <div class="info-banner">
+          Click <strong>Download .pixl File</strong> below.<br>
+          Send that file to your friend via WhatsApp, Telegram, email, USB — anything.<br>
+          They open it in the <strong>Decode tab</strong> on their device to see your image.
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="downloadPixl()">⬇ Download .pixl File</button>
+          <button class="btn btn-danger" onclick="clearEncode()">Clear</button>
+        </div>
+        <div class="copy-flash" id="copyFlash">✓ File downloaded!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECODE PANEL -->
+  <div class="panel" id="panel-decode">
+    <div class="card">
+      <div class="card-label">Load the .pixl file</div>
+      <div class="info-banner">
+        Your friend sent you a <strong>.pixl file</strong>.<br>
+        Drop it below or click to open — your image appears instantly, nothing saved to disk.
+      </div>
+      <div class="dropzone" id="dropzone-decode">
+        <input type="file" id="pixlInput" onchange="loadPixl(this.files[0])">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text"><strong>Drop .pixl file here</strong><br>or click to browse</div>
+      </div>
+      <div class="progress-wrap" id="decodeProgress">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <div id="resultBox" style="display:none">
+      <div class="card">
+        <div class="card-label">✓ Your image</div>
+        <img id="decodedImg" class="preview-img" alt="decoded image">
+        <div class="stats" id="decodeStats"></div>
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn btn-primary" onclick="downloadDecoded()">⬇ Save Image</button>
+          <button class="btn btn-danger" onclick="clearDecode()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="how">
+    <div class="how-title">// how it works</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">01</div><div class="step-text">Pick image — browser compresses it in memory, disk never touched</div></div>
+      <div class="step"><div class="step-num">02</div><div class="step-text">Download a .pixl file — tiny text file with your image encoded inside</div></div>
+      <div class="step"><div class="step-num">03</div><div class="step-text">Send that file to your friend any way you like</div></div>
+      <div class="step"><div class="step-num">04</div><div class="step-text">Friend drops it in the Decode tab — image appears in memory instantly</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let originalFile = null;
+  let encodedDataUrl = '';
+  let decodedDataUrl = '';
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) =>
+      t.classList.toggle('active', (i===0&&tab==='encode')||(i===1&&tab==='decode'))
+    );
+    document.getElementById('panel-encode').classList.toggle('active', tab==='encode');
+    document.getElementById('panel-decode').classList.toggle('active', tab==='decode');
+  }
+
+  // ── ENCODE ──
+  function handleFile(file) {
+    if (!file) return;
+    originalFile = file;
+    compress();
+  }
+
+  function recompress() {
+    if (originalFile) compress();
+  }
+
+  function compress() {
+    const quality = parseInt(document.getElementById('qualitySlider').value) / 100;
+    const maxPx   = parseInt(document.getElementById('sizeSlider').value);
+    const reader  = new FileReader();
+
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else       { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        encodedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        document.getElementById('preview').src = encodedDataUrl;
+        document.getElementById('encode-result').style.display = 'block';
+
+        const origKB  = (originalFile.size / 1024).toFixed(1);
+        const newBytes = Math.round((encodedDataUrl.length - encodedDataUrl.indexOf(',') - 1) * 0.75);
+        const newKB   = (newBytes / 1024).toFixed(1);
+        const saved   = Math.max(0, (100 - (newBytes / originalFile.size * 100))).toFixed(0);
+
+        document.getElementById('stats').innerHTML = `
+          <div class="stat">Original: <span>${origKB} KB</span></div>
+          <div class="stat">Compressed: <span>${newKB} KB</span></div>
+          <div class="stat">Saved: <span>${saved}%</span></div>
+          <div class="stat">Resolution: <span>${w}×${h}px</span></div>
+        `;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(originalFile);
+  }
+
+  function downloadPixl() {
+    if (!encodedDataUrl) return;
+    const blob = new Blob([encodedDataUrl], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'image.pixl';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    const fl = document.getElementById('copyFlash');
+    fl.classList.add('show');
+    setTimeout(() => fl.classList.remove('show'), 3000);
+  }
+
+  function clearEncode() {
+    originalFile = null; encodedDataUrl = '';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('encode-result').style.display = 'none';
+  }
+
+  // ── DECODE ──
+  function loadPixl(file) {
+    if (!file) return;
+    const prog   = document.getElementById('decodeProgress');
+    const fill   = document.getElementById('progressFill');
+    const errMsg = document.getElementById('errorMsg');
+    const result = document.getElementById('resultBox');
+
+    errMsg.classList.remove('show');
+    result.style.display = 'none';
+    prog.classList.add('show');
+    fill.style.width = '30%';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      fill.style.width = '65%';
+      try {
+        // Strip whitespace that could corrupt base64
+        const raw = e.target.result.trim().replace(/[\r\n\s]+/g, '');
+
+        let dataUrl = raw.startsWith('data:image') ? raw : 'data:image/jpeg;base64,' + raw;
+
+        const imgEl = document.getElementById('decodedImg');
+
+        imgEl.onload = () => {
+          fill.style.width = '100%';
+          setTimeout(() => { prog.classList.remove('show'); fill.style.width = '0%'; }, 400);
+          result.style.display = 'block';
+          decodedDataUrl = dataUrl;
+          const b64part  = dataUrl.split(',')[1] || '';
+          const approxKB = (Math.round(b64part.length * 0.75) / 1024).toFixed(1);
+          document.getElementById('decodeStats').innerHTML = `
+            <div class="stat">Size: <span>~${approxKB} KB</span></div>
+            <div class="stat">Dimensions: <span>${imgEl.naturalWidth}×${imgEl.naturalHeight}px</span></div>
+            <div class="stat">Status: <span>✓ In memory only</span></div>
+          `;
+        };
+
+        imgEl.onerror = () => {
+          // PNG fallback
+          const b64only  = raw.replace(/^data:[^,]+,/, '');
+          const fallback = 'data:image/png;base64,' + b64only;
+          imgEl.onerror  = () => {
+            prog.classList.remove('show');
+            errMsg.textContent = '❌ Could not decode. Make sure you got the exact .pixl file from your friend and it was not renamed or modified.';
+            errMsg.classList.add('show');
+          };
+          imgEl.src = fallback;
+        };
+
+        imgEl.src = dataUrl;
+
+      } catch (err) {
+        prog.classList.remove('show');
+        errMsg.textContent = '❌ Error: ' + err.message;
+        errMsg.classList.add('show');
+      }
+    };
+
+    reader.onerror = () => {
+      prog.classList.remove('show');
+      errMsg.textContent = '❌ Could not read the file.';
+      errMsg.classList.add('show');
+    };
+
+    reader.readAsText(file);
+  }
+
+  function downloadDecoded() {
+    if (!decodedDataUrl) return;
+    const a = document.createElement('a');
+    a.href = decodedDataUrl;
+    a.download = 'received_image.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function clearDecode() {
+    decodedDataUrl = '';
+    document.getElementById('pixlInput').value = '';
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('errorMsg').classList.remove('show');
+  }
+
+  // Drag & drop — encode
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleFile(f);
+  });
+
+  // Drag & drop — decode
+  const dzd = document.getElementById('dropzone-decode');
+  dzd.addEventListener('dragover',  e => { e.preventDefault(); dzd.classList.add('drag-over'); });
+  dzd.addEventListener('dragleave', () => dzd.classList.remove('drag-over'));
+  dzd.addEventListener('drop', e => {
+    e.preventDefault(); dzd.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) loadPixl(e.dataTransfer.files[0]);
+  });
+</script>
+</body>
+  </html>
