@@ -82,7 +82,81 @@
   .step { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem; }
   .step-num { font-family: 'Courier New', monospace; font-size: 1.4rem; color: var(--accent); font-weight: 700; line-height: 1; margin-bottom: 0.4rem; }
   .step-text { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
-  @media (max-width: 520px) { .slider-row { grid-template-columns: 1fr; } }
+  .info-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s;
+  }
+  .popup {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+  }
+  .popup-header {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .popup-content {
+    margin-bottom: 1.5rem;
+  }
+  .rec-item {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+  }
+  .popup-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .popup-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  @media (max-width: 520px) { 
+    .slider-row { grid-template-columns: 1fr; }
+    .popup { width: 95%; padding: 1rem; }
+    .popup-buttons { flex-direction: column; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 </style>
 </head>
 <body>
@@ -133,6 +207,7 @@
 
     <div class="card">
       <div class="card-label">Step 1 — Pick your image</div>
+      <div class="info-text">For shorter chunks and smoother decoding, use screenshots or compressed images. Large high-resolution images create huge text chunks and may freeze slower devices.</div>
       <div class="dropzone" id="dropzone">
         <input type="file" accept="image/*" id="fileInput" onchange="handleFile(this.files[0])">
         <div class="drop-icon">🖼️</div>
@@ -235,7 +310,20 @@
   function handleFile(file) {
     if (!file) return;
     originalFile = file;
-    compress();
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const w = img.width;
+      const h = img.height;
+      URL.revokeObjectURL(url);
+      showOptimizationPopup(file.size, w, h);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      console.log('Image failed to load');
+      proceedWithCurrent();
+    };
+    img.src = url;
   }
 
   function recompress() {
@@ -364,6 +452,79 @@
     originalFile = null; encodedChunks = [];
     document.getElementById('fileInput').value = '';
     document.getElementById('encode-result').style.display = 'none';
+  }
+
+  function showOptimizationPopup(size, w, h) {
+    console.log('showOptimizationPopup called with size:', size, 'w:', w, 'h:', h);
+    const maxDim = Math.max(w, h);
+    let recQuality, recMaxRes, recRisk;
+    if (size > 10000000 || maxDim > 3000) {
+      recQuality = 0.3;
+      recMaxRes = 500;
+      recRisk = 'Very High';
+    } else if (size > 5000000 || maxDim > 2000) {
+      recQuality = 0.5;
+      recMaxRes = 800;
+      recRisk = 'High';
+    } else if (size > 2000000 || maxDim > 1500) {
+      recQuality = 0.7;
+      recMaxRes = 1200;
+      recRisk = 'Medium';
+    } else {
+      recQuality = 0.8;
+      recMaxRes = 1600;
+      recRisk = 'Low';
+    }
+    // Estimate chunks
+    const currentQuality = currentMode === 'exact' ? 1.0 : parseInt(document.getElementById('qualitySlider').value) / 100;
+    const currentMaxRes = currentMode === 'exact' ? 9999 : parseInt(document.getElementById('sizeSlider').value);
+    const currentCompressedSize = estimateCompressedSize(size, w, h, currentQuality, currentMaxRes);
+    const recCompressedSize = estimateCompressedSize(size, w, h, recQuality, recMaxRes);
+    const currentChunks = Math.ceil(currentCompressedSize / 8000);
+    const recChunks = Math.ceil(recCompressedSize / 8000);
+    const reduction = currentChunks > 0 ? Math.round((1 - recChunks / currentChunks) * 100) : 0;
+    recReduction = `~${reduction}%`;
+    // Adjust freeze risk based on recChunks
+    if (recChunks > 100) recRisk = 'Very High';
+    else if (recChunks > 50) recRisk = 'High';
+    else if (recChunks > 20) recRisk = 'Medium';
+    else recRisk = 'Low';
+    document.getElementById('recQuality').textContent = recQuality;
+    document.getElementById('recMaxRes').textContent = recMaxRes + 'px';
+    document.getElementById('recChunks').textContent = recChunks;
+    document.getElementById('recReduction').textContent = recReduction;
+    document.getElementById('recRisk').textContent = recRisk;
+    console.log('Setting popup display to flex');
+    document.getElementById('optimizationPopup').style.display = 'flex';
+  }
+
+  function estimateCompressedSize(size, w, h, quality, maxRes) {
+    const scale = Math.min(1, maxRes / Math.max(w, h));
+    const scaledPixels = w * h * scale * scale;
+    const originalPixels = w * h;
+    const estimatedSize = size * (scaledPixels / originalPixels) * quality;
+    return estimatedSize * 4 / 3; // base64
+  }
+
+  function applyRecommendations() {
+    const quality = parseFloat(document.getElementById('recQuality').textContent);
+    const maxRes = parseInt(document.getElementById('recMaxRes').textContent);
+    document.getElementById('qualitySlider').value = quality * 100;
+    document.getElementById('qualityVal').textContent = (quality * 100) + '%';
+    document.getElementById('sizeSlider').value = maxRes;
+    document.getElementById('sizeVal').textContent = maxRes + 'px';
+    setMode('optimized');
+    closePopup();
+    compress();
+  }
+
+  function proceedWithCurrent() {
+    closePopup();
+    compress();
+  }
+
+  function closePopup() {
+    document.getElementById('optimizationPopup').style.display = 'none';
   }
 
   // ── DECODE ──
@@ -558,5 +719,24 @@
   window.addEventListener('offline', updateOnlineStatus);
   updateOnlineStatus();
 </script>
+
+<div id="optimizationPopup" class="popup-overlay" style="display:none">
+  <div class="popup">
+    <div class="popup-header">Recommended Settings</div>
+    <div class="popup-content">
+      <div class="rec-item">Quality: <span id="recQuality">0.65</span></div>
+      <div class="rec-item">Max Resolution: <span id="recMaxRes">1000px</span></div>
+      <div class="rec-item">Estimated Chunks: <span id="recChunks">0</span></div>
+      <div class="rec-item">Estimated Chunk Reduction: <span id="recReduction">~72%</span></div>
+      <div class="rec-item">Freeze Risk: <span id="recRisk">Low</span></div>
+    </div>
+    <div class="popup-buttons">
+      <button type="button" class="btn btn-secondary" onclick="applyRecommendations()">Apply & Continue</button>
+      <button type="button" class="btn btn-primary" onclick="proceedWithCurrent()">Use Current Settings</button>
+    </div>
+    <button class="popup-close" onclick="closePopup()">×</button>
+  </div>
+</div>
+
 </body>
 </html>
