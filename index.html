@@ -80,7 +80,7 @@
   <header>
     <div class="logo">// offline image transfer</div>
     <h1>PixelPass</h1>
-    <p class="subtitle">image → base64 chunks → image &nbsp;|&nbsp; no server, no storage, offline</p>
+    <p class="subtitle">image → base64 text → image &nbsp;|&nbsp; no server, no storage, offline</p>
   </header>
 
   <div class="tabs">
@@ -138,13 +138,13 @@
       <div class="card">
         <div class="card-label">Step 3 — Copy chunks to send</div>
         <div class="info-banner">
-          Copy all the text chunks below.<br>
-          Send them via any chat/SMS — paste each chunk separately if needed.<br>
-          Receiver pastes all chunks into the <strong>Decode tab</strong>.
+          Copy the text below.<br>
+          Send it via any chat/SMS — the system will auto-detect and reconstruct the image.<br>
+          Receiver pastes the text into the <strong>Decode tab</strong>.
         </div>
         <div class="chunks-display" id="chunksDisplay"></div>
         <div class="btn-row">
-          <button type="button" class="btn btn-primary" onclick="copyChunks()">📋 Copy All Chunks</button>
+          <button type="button" class="btn btn-primary" onclick="copyChunks()">📋 Copy Text</button>
           <button type="button" class="btn btn-danger" onclick="clearEncode()">Clear</button>
         </div>
         <div class="copy-flash" id="copyFlash">✓ Chunks copied to clipboard!</div>
@@ -160,8 +160,8 @@
     <div class="card">
       <div class="card-label">Paste all chunks here</div>
       <div class="info-banner">
-        Your friend sent you chunks of text.<br>
-        Paste them all into the box below — the system will auto-detect and reconstruct the image.
+        Your friend sent you text.<br>
+        Paste it into the box below — the system will auto-detect and reconstruct the image.
       </div>
       <textarea class="paste-area" id="pasteArea" placeholder="Paste all PIXLPASS chunks here..."></textarea>
       <div class="btn-row">
@@ -191,7 +191,7 @@
     <div class="how-title">// how it works</div>
     <div class="steps">
       <div class="step"><div class="step-num">01</div><div class="step-text">Pick image — browser encodes it into base64 chunks in memory, disk never touched</div></div>
-      <div class="step"><div class="step-num">02</div><div class="step-text">Copy the chunked text — send via any chat/SMS, each chunk separately if needed</div></div>
+      <div class="step"><div class="step-num">02</div><div class="step-text">Copy the encoded text — send via any chat/SMS as one message</div></div>
       <div class="step"><div class="step-num">03</div><div class="step-text">Receiver pastes all chunks — system auto-detects, sorts, validates, and reconstructs</div></div>
       <div class="step"><div class="step-num">04</div><div class="step-text">Image appears instantly in memory — works offline, no servers</div></div>
     </div>
@@ -313,17 +313,19 @@
     
     const chunkSize = 30000; // 30KB
     const totalChunks = Math.ceil(b64data.length / chunkSize);
-    encodedChunks = [];
-    
     const header = `PIXLPASS v1 ${currentMode} ${filetype} ${totalChunks} ${filename}`;
     
+    let fullText = header + '\n\n';
     for (let i = 0; i < totalChunks; i++) {
-      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 10 chunks
+      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, b64data.length);
       const chunk = b64data.slice(start, end);
-      encodedChunks.push(`${header}\n\n---PART ${i+1}/${totalChunks}---\n${chunk}`);
+      fullText += `---PART ${i+1}/${totalChunks}---\n${chunk}`;
+      if (i < totalChunks - 1) fullText += '\n\n';
     }
+    
+    encodedChunks = [fullText];
     
     fill.style.width = '100%';
     setTimeout(() => {
@@ -336,11 +338,11 @@
 
   function displayChunks() {
     const display = document.getElementById('chunksDisplay');
-    display.textContent = encodedChunks.join('\n\n');
+    display.textContent = encodedChunks[0];
   }
 
   function copyChunks() {
-    navigator.clipboard.writeText(encodedChunks.join('\n\n')).then(() => {
+    navigator.clipboard.writeText(encodedChunks[0]).then(() => {
       const fl = document.getElementById('copyFlash');
       fl.classList.add('show');
       setTimeout(() => fl.classList.remove('show'), 3000);
@@ -409,30 +411,31 @@
 
   async function parseChunksAsync(text) {
     const lines = text.split('\n');
+    let metadata = null;
     const parts = [];
     let currentPart = null;
     
     for (let i = 0; i < lines.length; i++) {
-      if (i % 1000 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 1000 lines
+      if (i % 1000 === 0) await new Promise(r => setTimeout(r, 0));
       const line = lines[i];
       if (line.startsWith('PIXLPASS ')) {
-        if (currentPart) parts.push(currentPart);
         const header = line.split(' ');
-        currentPart = {
+        metadata = {
           version: header[1],
           mode: header[2],
           type: header[3],
           total: parseInt(header[4]),
-          name: header.slice(5).join(' '),
-          index: null,
-          data: ''
+          name: header.slice(5).join(' ')
         };
       } else if (line.startsWith('---PART ')) {
-        if (currentPart) {
-          const match = line.match(/---PART (\d+)\/(\d+)---/);
-          if (match) {
-            currentPart.index = parseInt(match[1]) - 1;
-          }
+        if (currentPart) parts.push(currentPart);
+        const match = line.match(/---PART (\d+)\/(\d+)---/);
+        if (match && metadata) {
+          currentPart = {
+            ...metadata,
+            index: parseInt(match[1]) - 1,
+            data: ''
+          };
         }
       } else if (currentPart && line.trim()) {
         currentPart.data += line.trim();
