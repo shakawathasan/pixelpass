@@ -315,7 +315,7 @@
     const totalChunks = Math.ceil(b64data.length / chunkSize);
     encodedChunks = [];
     
-    const header = `PIXLPASS|v1|mode=${currentMode}|type=${filetype}|name=${filename}|total=${totalChunks}`;
+    const header = `PIXLPASS v1 ${currentMode} ${filetype} ${totalChunks} ${filename}`;
     
     for (let i = 0; i < totalChunks; i++) {
       if (i % 10 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 10 chunks
@@ -392,6 +392,12 @@
           <div class="stat">Status: <span>✓ Reconstructed</span></div>
         `;
       };
+      imgEl.onerror = () => {
+        prog.classList.remove('show');
+        fill.style.width = '0%';
+        errMsg.textContent = '❌ Failed to decode image. The reconstructed data may be corrupted or the format is invalid.';
+        errMsg.classList.add('show');
+      };
       imgEl.src = dataUrl;
       
     } catch (err) {
@@ -409,16 +415,15 @@
     for (let i = 0; i < lines.length; i++) {
       if (i % 1000 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 1000 lines
       const line = lines[i];
-      if (line.startsWith('PIXLPASS|')) {
+      if (line.startsWith('PIXLPASS ')) {
         if (currentPart) parts.push(currentPart);
-        const header = line.split('|');
+        const header = line.split(' ');
         currentPart = {
-          header: line,
           version: header[1],
-          mode: header[2].split('=')[1],
-          type: header[3].split('=')[1],
-          name: header[4].split('=')[1],
-          total: parseInt(header[5].split('=')[1]),
+          mode: header[2],
+          type: header[3],
+          total: parseInt(header[4]),
+          name: header.slice(5).join(' '),
           index: null,
           data: ''
         };
