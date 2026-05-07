@@ -322,13 +322,13 @@
     const fill = document.getElementById('encodeProgressFill');
     fill.style.width = '70%';
     
-    const chunkSize = 30000; // 30KB
+    const chunkSize = 8000; // 8KB (smaller for less freezing)
     const totalChunks = Math.ceil(b64data.length / chunkSize);
     const header = `PIXLPASS v1 ${currentMode} ${filetype} ${totalChunks} ${filename}`;
     
     let fullText = header + '\n\n';
     for (let i = 0; i < totalChunks; i++) {
-      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
+      if (i % 3 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 3 chunks
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, b64data.length);
       const chunk = b64data.slice(start, end);
@@ -427,7 +427,7 @@
     let currentPart = null;
     
     for (let i = 0; i < lines.length; i++) {
-      if (i % 1000 === 0) await new Promise(r => setTimeout(r, 0));
+      if (i % 100 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 100 lines
       const line = lines[i];
       if (line.startsWith('PIXLPASS ')) {
         const header = line.split(' ');
@@ -489,12 +489,13 @@
       if (!seen.has(i)) throw new Error(`Missing chunk ${i+1}/${metadata.total}.`);
     }
     
-    // Reconstruct base64
-    let b64data = '';
+    // Reconstruct base64 using array join for better performance
+    const chunks = [];
     for (let i = 0; i < parts.length; i++) {
-      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 10 parts
-      b64data += parts[i].data;
+      if (i % 5 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 5 parts
+      chunks.push(parts[i].data);
     }
+    const b64data = chunks.join('');
     
     return { b64data, metadata };
   }
