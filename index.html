@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#00e887">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PixelPass">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <title>PixelPass</title>
 <style>
-/* ── No external dependencies — fully offline ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -55,6 +60,8 @@ body {
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab:hover  { color: var(--text); }
@@ -90,6 +97,7 @@ body {
   padding: 0.75rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 .mode-option:has(input:checked) {
   border-color: var(--accent);
@@ -118,7 +126,6 @@ body {
 .dropzone.over,
 .dropzone:focus-within { border-color: var(--accent); background: rgba(0,232,135,0.04); }
 
-/* opacity:0 NOT display:none — mobile tap must work */
 .dropzone input[type=file] {
   position: absolute;
   inset: 0;
@@ -191,6 +198,10 @@ body {
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
   min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn:active:not(:disabled) { transform: scale(0.97); }
@@ -219,6 +230,8 @@ body {
   outline: none;
   line-height: 1.5;
   transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .paste-area:focus { border-color: var(--accent); }
 .paste-area::placeholder { color: var(--muted); }
@@ -249,6 +262,23 @@ body {
 .how-num  { font-family: var(--mono); font-size: 1.1rem; color: var(--accent); font-weight: 700; margin-bottom: 0.3rem; }
 .how-text { font-size: 0.76rem; color: var(--muted); line-height: 1.5; }
 
+/* ── Install banner ── */
+#install-banner {
+  display: none;
+  background: rgba(0,232,135,0.08);
+  border: 1px solid rgba(0,232,135,0.25);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-family: var(--mono);
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .mode-row { flex-direction: column; }
@@ -265,13 +295,19 @@ body {
     <p>// offline · no server · no internet required</p>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('encode')">Encode (Sender)</button>
-    <button class="tab"        onclick="switchTab('decode')">Decode (Receiver)</button>
+  <div id="install-banner" role="banner" aria-live="polite">
+    <span>📲 Add PixelPass to your home screen for full offline use.</span>
+    <button type="button" class="btn btn-primary" id="btn-install" style="padding:0.4rem 0.85rem;min-height:36px;font-size:0.78rem">Install</button>
+    <button type="button" class="btn btn-ghost"   id="btn-install-dismiss" style="padding:0.4rem 0.85rem;min-height:36px;font-size:0.78rem">Dismiss</button>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab active" id="tab-encode" role="tab" aria-selected="true"  aria-controls="panel-encode" onclick="switchTab('encode')">Encode (Sender)</button>
+    <button type="button" class="tab"        id="tab-decode" role="tab" aria-selected="false" aria-controls="panel-decode" onclick="switchTab('decode')">Decode (Receiver)</button>
   </div>
 
   <!-- ══════════ ENCODE ══════════ -->
-  <div class="panel active" id="panel-encode">
+  <div class="panel active" id="panel-encode" role="tabpanel" aria-labelledby="tab-encode">
 
     <div class="section">
       <div class="section-title">Mode</div>
@@ -292,7 +328,7 @@ body {
     <div class="section">
       <div class="section-title">Image</div>
       <div class="dropzone" id="dropzone">
-        <input type="file" accept="image/*" id="fileInput">
+        <input type="file" accept="image/*" id="fileInput" aria-label="Select image file">
         <div class="dz-icon">🖼</div>
         <div id="dropzone-label">Tap to pick image or drop here</div>
       </div>
@@ -300,14 +336,14 @@ body {
 
     <div class="section">
       <div class="section-title">Encode</div>
-      <div class="progress-track">
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="progress-fill" id="encode-progress"></div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" id="btn-encode" onclick="startEncode()">Encode</button>
-        <button class="btn btn-danger"  onclick="clearEncode()">Clear</button>
+        <button type="button" class="btn btn-primary" id="btn-encode" onclick="startEncode()">Encode</button>
+        <button type="button" class="btn btn-danger"  onclick="clearEncode()">Clear</button>
       </div>
-      <div class="error-text" id="encode-error"></div>
+      <div class="error-text" id="encode-error" role="alert" aria-live="assertive"></div>
     </div>
 
     <div id="encode-result" style="display:none">
@@ -322,8 +358,8 @@ body {
           <div class="stat-text" id="output-stats"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="btn-copy"     onclick="copyOutput()">Copy Text</button>
-          <button class="btn btn-ghost"                     onclick="downloadOutput()">Download .pixl</button>
+          <button type="button" class="btn btn-primary" id="btn-copy"     onclick="copyOutput()">Copy Text</button>
+          <button type="button" class="btn btn-ghost"                     onclick="downloadOutput()">Download .pixl</button>
         </div>
       </div>
     </div>
@@ -331,7 +367,7 @@ body {
   </div>
 
   <!-- ══════════ DECODE ══════════ -->
-  <div class="panel" id="panel-decode">
+  <div class="panel" id="panel-decode" role="tabpanel" aria-labelledby="tab-decode">
 
     <div class="section">
       <div class="section-title">Paste encoded text</div>
@@ -341,16 +377,19 @@ body {
       </div>
       <textarea class="paste-area" id="pasteInput"
         placeholder="Paste PIXLPASS encoded text here..."
-        spellcheck="false" autocomplete="off"></textarea>
-      <div class="char-count" id="paste-char-count"></div>
-      <div class="progress-track">
+        spellcheck="false"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"></textarea>
+      <div class="char-count" id="paste-char-count" aria-live="polite"></div>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="progress-fill" id="decode-progress"></div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" id="btn-decode" onclick="startDecode()">Decode Image</button>
-        <button class="btn btn-danger"  onclick="clearDecode()">Clear</button>
+        <button type="button" class="btn btn-primary" id="btn-decode" onclick="startDecode()">Decode Image</button>
+        <button type="button" class="btn btn-danger"  onclick="clearDecode()">Clear</button>
       </div>
-      <div class="error-text" id="decode-error"></div>
+      <div class="error-text" id="decode-error" role="alert" aria-live="assertive"></div>
     </div>
 
     <div id="decode-result" style="display:none">
@@ -359,8 +398,8 @@ body {
         <img id="decoded-img" alt="Decoded image">
         <div class="stat-text" id="decode-stats"></div>
         <div class="btn-row" style="margin-top:0.85rem">
-          <button class="btn btn-primary" onclick="downloadDecoded()">Save Image</button>
-          <button class="btn btn-danger"  onclick="clearDecode()">Clear</button>
+          <button type="button" class="btn btn-primary" onclick="downloadDecoded()">Save Image</button>
+          <button type="button" class="btn btn-danger"  onclick="clearDecode()">Clear</button>
         </div>
       </div>
     </div>
@@ -379,161 +418,37 @@ body {
 
 </div>
 
-<!-- ══════════ WORKER CODE (inlined as Blob) ══════════ -->
-<script id="worker-src" type="text/plain">
-const CHUNK_SIZE = 30 * 1024;
-
-async function encodeExact(buffer, meta) {
-  const bytes = new Uint8Array(buffer);
-  const total = bytes.length;
-  let b64 = '';
-  const BATCH = 8192;
-  for (let i = 0; i < total; i += BATCH) {
-    const slice = bytes.subarray(i, i + BATCH);
-    b64 += String.fromCharCode.apply(null, slice);
-    self.postMessage({ type: 'progress', pct: Math.round((i / total) * 50) });
-    await tick();
-  }
-  const encoded = btoa(b64);
-  self.postMessage({ type: 'progress', pct: 55 });
-  return buildChunks(encoded, 'exact', meta);
-}
-
-async function encodeOptimized(dataUrl, meta) {
-  const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-  self.postMessage({ type: 'progress', pct: 55 });
-  return buildChunks(b64, 'optimized', meta);
-}
-
-async function buildChunks(b64, mode, meta) {
-  const totalChunks = Math.ceil(b64.length / CHUNK_SIZE);
-  const header = 'PIXLPASS|v1|mode=' + mode + '|type=' + meta.type + '|name=' + meta.name + '|total=' + totalChunks + '\n';
-  const parts = [];
-  for (let i = 0; i < totalChunks; i++) {
-    parts.push('---PART ' + (i + 1) + '/' + totalChunks + '---\n' + b64.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
-    self.postMessage({ type: 'progress', pct: 55 + Math.round(((i + 1) / totalChunks) * 40) });
-    await tick();
-  }
-  return header + parts.join('\n\n');
-}
-
-async function decode(text) {
-  const firstLine = text.trim().split('\n')[0];
-  if (!firstLine.startsWith('PIXLPASS|v1|')) throw new Error('Invalid format: missing PIXLPASS header.');
-
-  const fields = {};
-  firstLine.split('|').forEach(function(f) {
-    const eq = f.indexOf('=');
-    if (eq !== -1) fields[f.slice(0, eq)] = f.slice(eq + 1);
-  });
-
-  const totalChunks = parseInt(fields.total, 10);
-  const mimeType    = fields.type || 'image/jpeg';
-  const mode        = fields.mode || 'exact';
-
-  if (!totalChunks || isNaN(totalChunks)) throw new Error('Invalid header: missing total chunks.');
-  self.postMessage({ type: 'progress', pct: 10 });
-
-  const partRegex = /---PART (\d+)\/(\d+)---\n([\s\S]*?)(?=\n\n---PART |\s*$)/g;
-  const partsMap  = new Map();
-  let match;
-
-  while ((match = partRegex.exec(text)) !== null) {
-    const idx  = parseInt(match[1], 10);
-    const data = match[3].replace(/[\r\n\s]/g, '');
-    if (partsMap.has(idx)) throw new Error('Duplicate chunk: part ' + idx + '.');
-    partsMap.set(idx, data);
-    await tick();
-  }
-
-  self.postMessage({ type: 'progress', pct: 30 });
-
-  const missing = [];
-  for (let i = 1; i <= totalChunks; i++) {
-    if (!partsMap.has(i)) missing.push(i);
-  }
-  if (missing.length > 0) throw new Error('Missing chunks: ' + missing.join(', ') + '. Need all ' + totalChunks + ' parts.');
-
-  let fullB64 = '';
-  for (let i = 1; i <= totalChunks; i++) {
-    fullB64 += partsMap.get(i);
-    self.postMessage({ type: 'progress', pct: 30 + Math.round((i / totalChunks) * 40) });
-    await tick();
-  }
-
-  self.postMessage({ type: 'progress', pct: 75 });
-
-  if (!/^[A-Za-z0-9+/]+=*$/.test(fullB64)) throw new Error('Corrupted data: invalid Base64 characters.');
-
-  const binary = atob(fullB64);
-  const len    = binary.length;
-  const bytes  = new Uint8Array(len);
-  const BATCH  = 8192;
-
-  for (let i = 0; i < len; i += BATCH) {
-    const end = Math.min(i + BATCH, len);
-    for (let j = i; j < end; j++) bytes[j] = binary.charCodeAt(j);
-    self.postMessage({ type: 'progress', pct: Math.min(75 + Math.round(((i + BATCH) / len) * 20), 95) });
-    await tick();
-  }
-
-  const blob = new Blob([bytes], { type: mimeType });
-  self.postMessage({ type: 'progress', pct: 100 });
-  return { blob, mimeType, mode };
-}
-
-function tick() { return new Promise(function(r) { setTimeout(r, 0); }); }
-
-self.onmessage = async function(e) {
-  try {
-    if (e.data.task === 'encode-exact') {
-      self.postMessage({ type: 'encode-done', result: await encodeExact(e.data.buffer, e.data.meta) });
-    } else if (e.data.task === 'encode-optimized') {
-      self.postMessage({ type: 'encode-done', result: await encodeOptimized(e.data.dataUrl, e.data.meta) });
-    } else if (e.data.task === 'decode') {
-      const r = await decode(e.data.text);
-      self.postMessage({ type: 'decode-done', blob: r.blob, mimeType: r.mimeType, mode: r.mode });
-    }
-  } catch (err) {
-    self.postMessage({ type: 'error', message: err.message });
-  }
-};
-</script>
-
 <!-- ══════════ MAIN LOGIC ══════════ -->
 <script>
-// ── Spawn worker from inline blob (works offline, no external file needed) ──
+// ── Worker factory — uses external worker.js (PWA-safe, offline-safe) ──
 function makeWorker() {
-  const src  = document.getElementById('worker-src').textContent;
-  const blob = new Blob([src], { type: 'application/javascript' });
-  const url  = URL.createObjectURL(blob);
-  const w    = new Worker(url);
-  URL.revokeObjectURL(url); // safe to revoke after Worker is created
-  return w;
+  return new Worker('./worker.js');
 }
 
 // ── State ──
-const MAX_EXACT     = 1 * 1024 * 1024;
-const MAX_OPTIMIZED = 2 * 1024 * 1024;
-const OPT_MAX_PX    = 600;
-const OPT_QUALITY   = 0.6;
+var MAX_EXACT     = 1 * 1024 * 1024;
+var MAX_OPTIMIZED = 2 * 1024 * 1024;
+var OPT_MAX_PX    = 600;
+var OPT_QUALITY   = 0.6;
 
-let worker          = null;
-let currentFile     = null;
-let objectUrlActive = null;
+var worker          = null;
+var currentFile     = null;
+var objectUrlActive = null;
 
 // ── Tabs ──
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(function(t, i) {
-    t.classList.toggle('active', (i === 0 && tab === 'encode') || (i === 1 && tab === 'decode'));
-  });
-  document.getElementById('panel-encode').classList.toggle('active', tab === 'encode');
-  document.getElementById('panel-decode').classList.toggle('active', tab === 'decode');
+  var isEncode = tab === 'encode';
+  document.getElementById('tab-encode').classList.toggle('active', isEncode);
+  document.getElementById('tab-decode').classList.toggle('active', !isEncode);
+  document.getElementById('tab-encode').setAttribute('aria-selected', isEncode ? 'true' : 'false');
+  document.getElementById('tab-decode').setAttribute('aria-selected', isEncode ? 'false' : 'true');
+  document.getElementById('panel-encode').classList.toggle('active', isEncode);
+  document.getElementById('panel-decode').classList.toggle('active', !isEncode);
 }
 
-// ── ENCODE ──
+// ── File input ──
 document.getElementById('fileInput').addEventListener('change', function() {
-  if (this.files[0]) {
+  if (this.files && this.files[0]) {
     currentFile = this.files[0];
     document.getElementById('dropzone-label').textContent = currentFile.name;
     document.getElementById('encode-result').style.display = 'none';
@@ -542,10 +457,11 @@ document.getElementById('fileInput').addEventListener('change', function() {
   }
 });
 
-async function startEncode() {
+// ── ENCODE ──
+function startEncode() {
   if (!currentFile) { showEncodeError('Please select an image first.'); return; }
 
-  const mode = document.querySelector('input[name="mode"]:checked').value;
+  var mode = document.querySelector('input[name="mode"]:checked').value;
 
   if (mode === 'exact' && currentFile.size > MAX_EXACT) {
     showEncodeError('EXACT mode max is 1MB. Your file is ' + (currentFile.size/1024/1024).toFixed(2) + 'MB. Switch to OPTIMIZED.');
@@ -560,49 +476,59 @@ async function startEncode() {
   setProgress('encode-progress', 5);
   document.getElementById('encode-error').textContent = '';
 
-  if (worker) worker.terminate();
+  if (worker) { worker.terminate(); worker = null; }
   worker = makeWorker();
 
   worker.onmessage = function(e) {
-    if (e.data.type === 'progress')    { setProgress('encode-progress', e.data.pct); }
+    if (e.data.type === 'progress')      { setProgress('encode-progress', e.data.pct); }
     else if (e.data.type === 'encode-done') { onEncodeDone(e.data.result); }
-    else if (e.data.type === 'error')  { setEncodeUI(false); showEncodeError(e.data.message); }
+    else if (e.data.type === 'error')    { setEncodeUI(false); showEncodeError(e.data.message); }
+  };
+
+  worker.onerror = function(err) {
+    setEncodeUI(false);
+    showEncodeError('Worker error: ' + (err.message || 'unknown error'));
   };
 
   if (mode === 'exact') {
-    const buf = await currentFile.arrayBuffer();
-    worker.postMessage({ task: 'encode-exact', buffer: buf, meta: { type: currentFile.type, name: currentFile.name } }, [buf]);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var buf = e.target.result;
+      worker.postMessage({ task: 'encode-exact', buffer: buf, meta: { type: currentFile.type, name: currentFile.name } }, [buf]);
+    };
+    reader.onerror = function() { setEncodeUI(false); showEncodeError('Could not read file.'); };
+    reader.readAsArrayBuffer(currentFile);
   } else {
-    const dataUrl = await compressImage(currentFile);
-    if (!dataUrl) { setEncodeUI(false); return; }
-    const mimeType = dataUrl.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
-    worker.postMessage({ task: 'encode-optimized', dataUrl, meta: { type: mimeType, name: currentFile.name } });
+    compressImage(currentFile, function(dataUrl) {
+      if (!dataUrl) { setEncodeUI(false); return; }
+      var mimeType = dataUrl.indexOf('data:image/webp') === 0 ? 'image/webp' : 'image/jpeg';
+      worker.postMessage({ task: 'encode-optimized', dataUrl: dataUrl, meta: { type: mimeType, name: currentFile.name } });
+    });
   }
 }
 
-function compressImage(file) {
-  return new Promise(function(resolve) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        let w = img.width, h = img.height;
-        if (w > OPT_MAX_PX || h > OPT_MAX_PX) {
-          if (w > h) { h = Math.round(h * OPT_MAX_PX / w); w = OPT_MAX_PX; }
-          else       { w = Math.round(w * OPT_MAX_PX / h); h = OPT_MAX_PX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        let url = canvas.toDataURL('image/webp', OPT_QUALITY);
-        if (!url.startsWith('data:image/webp')) url = canvas.toDataURL('image/jpeg', OPT_QUALITY);
-        resolve(url);
-      };
-      img.onerror = function() { showEncodeError('Could not load image.'); resolve(null); };
-      img.src = e.target.result;
+function compressImage(file, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if (w > OPT_MAX_PX || h > OPT_MAX_PX) {
+        if (w > h) { h = Math.round(h * OPT_MAX_PX / w); w = OPT_MAX_PX; }
+        else       { w = Math.round(w * OPT_MAX_PX / h); h = OPT_MAX_PX; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      var url = canvas.toDataURL('image/webp', OPT_QUALITY);
+      if (url.indexOf('data:image/webp') !== 0) url = canvas.toDataURL('image/jpeg', OPT_QUALITY);
+      cb(url);
     };
-    reader.readAsDataURL(file);
-  });
+    img.onerror = function() { showEncodeError('Could not load image.'); cb(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() { showEncodeError('Could not read file.'); cb(null); };
+  reader.readAsDataURL(file);
 }
 
 function onEncodeDone(result) {
@@ -610,9 +536,9 @@ function onEncodeDone(result) {
   setProgress('encode-progress', 100);
   window._encodedResult = result;
 
-  const sizeKB     = (new Blob([result]).size / 1024).toFixed(1);
-  const chunkMatch = result.match(/total=(\d+)/);
-  const chunks     = chunkMatch ? chunkMatch[1] : '?';
+  var sizeKB     = (new Blob([result]).size / 1024).toFixed(1);
+  var chunkMatch = result.match(/total=(\d+)/);
+  var chunks     = chunkMatch ? chunkMatch[1] : '?';
 
   document.getElementById('output-info').style.display = 'block';
   document.getElementById('output-stats').textContent = sizeKB + ' KB total · ' + chunks + ' chunks';
@@ -621,7 +547,7 @@ function onEncodeDone(result) {
 }
 
 function copyOutput() {
-  const result = window._encodedResult;
+  var result = window._encodedResult;
   if (!result) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(result)
@@ -633,22 +559,22 @@ function copyOutput() {
 }
 
 function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
+  var ta = document.createElement('textarea');
   ta.value = text;
   ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px';
   document.body.appendChild(ta);
   ta.focus(); ta.select(); ta.setSelectionRange(0, 9999999);
   try { document.execCommand('copy'); flashBtn('btn-copy', '✓ Copied!'); }
-  catch(e) { alert('Auto-copy failed. Please download the .pixl file and send that instead.'); }
+  catch(e) { alert('Auto-copy failed. Please use Download .pixl instead.'); }
   document.body.removeChild(ta);
 }
 
 function downloadOutput() {
-  const result = window._encodedResult;
+  var result = window._encodedResult;
   if (!result) return;
-  const blob = new Blob([result], { type: 'text/plain' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+  var blob = new Blob([result], { type: 'text/plain' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
   a.href = url; a.download = 'image.pixl';
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -667,7 +593,7 @@ function clearEncode() {
 
 // ── DECODE ──
 function startDecode() {
-  const text = document.getElementById('pasteInput').value.trim();
+  var text = document.getElementById('pasteInput').value.trim();
   if (!text) { showDecodeError('Please paste the encoded text first.'); return; }
 
   setDecodeUI(true);
@@ -675,16 +601,21 @@ function startDecode() {
   clearDecodeResult();
   document.getElementById('decode-error').textContent = '';
 
-  if (worker) worker.terminate();
+  if (worker) { worker.terminate(); worker = null; }
   worker = makeWorker();
 
   worker.onmessage = function(e) {
-    if (e.data.type === 'progress')     { setProgress('decode-progress', e.data.pct); }
+    if (e.data.type === 'progress')      { setProgress('decode-progress', e.data.pct); }
     else if (e.data.type === 'decode-done') { onDecodeDone(e.data.blob, e.data.mimeType, e.data.mode); }
-    else if (e.data.type === 'error')   { setDecodeUI(false); showDecodeError(e.data.message); }
+    else if (e.data.type === 'error')    { setDecodeUI(false); showDecodeError(e.data.message); }
   };
 
-  worker.postMessage({ task: 'decode', text });
+  worker.onerror = function(err) {
+    setDecodeUI(false);
+    showDecodeError('Worker error: ' + (err.message || 'unknown error'));
+  };
+
+  worker.postMessage({ task: 'decode', text: text });
 }
 
 function onDecodeDone(blob, mimeType, mode) {
@@ -692,10 +623,10 @@ function onDecodeDone(blob, mimeType, mode) {
   setProgress('decode-progress', 100);
 
   if (objectUrlActive) { URL.revokeObjectURL(objectUrlActive); }
-  const url = URL.createObjectURL(blob);
+  var url = URL.createObjectURL(blob);
   objectUrlActive = url;
 
-  const imgEl = document.getElementById('decoded-img');
+  var imgEl = document.getElementById('decoded-img');
   imgEl.onload = function() {
     document.getElementById('decode-result').style.display = 'block';
     document.getElementById('decode-stats').textContent =
@@ -708,12 +639,12 @@ function onDecodeDone(blob, mimeType, mode) {
 }
 
 function downloadDecoded() {
-  const blob = window._decodedBlob;
+  var blob = window._decodedBlob;
   if (!blob) return;
-  const ext = window._decodedMimeType === 'image/png'  ? 'png'
-            : window._decodedMimeType === 'image/webp' ? 'webp' : 'jpg';
-  const url = URL.createObjectURL(blob);
-  const a   = document.createElement('a');
+  var ext = window._decodedMimeType === 'image/png'  ? 'png'
+          : window._decodedMimeType === 'image/webp' ? 'webp' : 'jpg';
+  var url = URL.createObjectURL(blob);
+  var a   = document.createElement('a');
   a.href = url; a.download = 'received_image.' + ext;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -736,49 +667,51 @@ function clearDecodeResult() {
 
 // ── UI helpers ──
 function setEncodeUI(busy) {
-  const btn = document.getElementById('btn-encode');
+  var btn = document.getElementById('btn-encode');
   btn.disabled = busy;
   btn.textContent = busy ? 'Encoding…' : 'Encode';
 }
 
 function setDecodeUI(busy) {
-  const btn = document.getElementById('btn-decode');
+  var btn = document.getElementById('btn-decode');
   btn.disabled = busy;
   btn.textContent = busy ? 'Decoding…' : 'Decode Image';
 }
 
 function setProgress(id, pct) {
-  const el = document.getElementById(id);
+  var el = document.getElementById(id);
   if (!el) return;
   el.style.width   = pct + '%';
   el.style.display = pct > 0 ? 'block' : 'none';
+  var track = el.parentElement;
+  if (track) track.setAttribute('aria-valuenow', pct);
 }
 
 function showEncodeError(msg) { document.getElementById('encode-error').textContent = '⚠ ' + msg; }
 function showDecodeError(msg) { document.getElementById('decode-error').textContent = '⚠ ' + msg; }
 
 function flashBtn(id, label) {
-  const btn = document.getElementById(id);
-  const orig = btn.textContent;
+  var btn  = document.getElementById(id);
+  var orig = btn.textContent;
   btn.textContent = label;
   setTimeout(function() { btn.textContent = orig; }, 2000);
 }
 
-// ── Live char count (non-blocking) ──
+// ── Live char count ──
 document.getElementById('pasteInput').addEventListener('input', function() {
-  const len = this.value.length;
+  var len = this.value.length;
   document.getElementById('paste-char-count').textContent = len > 0 ? len.toLocaleString() + ' chars' : '';
 });
 
 // ── Drag & drop ──
 (function() {
-  const dz = document.getElementById('dropzone');
+  var dz = document.getElementById('dropzone');
   dz.addEventListener('dragover',  function(e) { e.preventDefault(); dz.classList.add('over'); });
   dz.addEventListener('dragleave', function()  { dz.classList.remove('over'); });
   dz.addEventListener('drop', function(e) {
     e.preventDefault(); dz.classList.remove('over');
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) {
+    var f = e.dataTransfer.files[0];
+    if (f && f.type.indexOf('image/') === 0) {
       currentFile = f;
       document.getElementById('dropzone-label').textContent = f.name;
       document.getElementById('encode-result').style.display = 'none';
@@ -786,232 +719,42 @@ document.getElementById('pasteInput').addEventListener('input', function() {
     }
   });
 })();
+
+// ── PWA: Service Worker registration ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(function(err) { console.warn('SW registration failed:', err); });
+  });
+}
+
+// ── PWA: Install prompt ──
+var deferredInstallPrompt = null;
+var installBanner = document.getElementById('install-banner');
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  installBanner.style.display = 'flex';
+});
+
+document.getElementById('btn-install').addEventListener('click', function() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function() {
+    deferredInstallPrompt = null;
+    installBanner.style.display = 'none';
+  });
+});
+
+document.getElementById('btn-install-dismiss').addEventListener('click', function() {
+  installBanner.style.display = 'none';
+});
+
+window.addEventListener('appinstalled', function() {
+  installBanner.style.display = 'none';
+  deferredInstallPrompt = null;
+});
 </script>
 </body>
-</html>        Your friend sent you a <strong>.pixl file</strong>.<br>
-        Drop it below or click to open — your image appears instantly, nothing saved to disk.
-      </div>
-      <div class="dropzone" id="dropzone-decode">
-        <input type="file" id="pixlInput" onchange="loadPixl(this.files[0])">
-        <div class="drop-icon">📂</div>
-        <div class="drop-text"><strong>Drop .pixl file here</strong><br>or click to browse</div>
-      </div>
-      <div class="progress-wrap" id="decodeProgress">
-        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
-      </div>
-      <div class="error-msg" id="errorMsg"></div>
-    </div>
-
-    <div id="resultBox" style="display:none">
-      <div class="card">
-        <div class="card-label">✓ Your image</div>
-        <img id="decodedImg" class="preview-img" alt="decoded image">
-        <div class="stats" id="decodeStats"></div>
-        <div class="btn-row" style="margin-top:1rem">
-          <button class="btn btn-primary" onclick="downloadDecoded()">⬇ Save Image</button>
-          <button class="btn btn-danger" onclick="clearDecode()">Clear</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="how">
-    <div class="how-title">// how it works</div>
-    <div class="steps">
-      <div class="step"><div class="step-num">01</div><div class="step-text">Pick image — browser compresses it in memory, disk never touched</div></div>
-      <div class="step"><div class="step-num">02</div><div class="step-text">Download a .pixl file — tiny text file with your image encoded inside</div></div>
-      <div class="step"><div class="step-num">03</div><div class="step-text">Send that file to your friend any way you like</div></div>
-      <div class="step"><div class="step-num">04</div><div class="step-text">Friend drops it in the Decode tab — image appears in memory instantly</div></div>
-    </div>
-  </div>
-</div>
-
-<script>
-  let originalFile = null;
-  let encodedDataUrl = '';
-  let decodedDataUrl = '';
-
-  function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t, i) =>
-      t.classList.toggle('active', (i===0&&tab==='encode')||(i===1&&tab==='decode'))
-    );
-    document.getElementById('panel-encode').classList.toggle('active', tab==='encode');
-    document.getElementById('panel-decode').classList.toggle('active', tab==='decode');
-  }
-
-  // ── ENCODE ──
-  function handleFile(file) {
-    if (!file) return;
-    originalFile = file;
-    compress();
-  }
-
-  function recompress() {
-    if (originalFile) compress();
-  }
-
-  function compress() {
-    const quality = parseInt(document.getElementById('qualitySlider').value) / 100;
-    const maxPx   = parseInt(document.getElementById('sizeSlider').value);
-    const reader  = new FileReader();
-
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxPx || h > maxPx) {
-          if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
-          else       { w = Math.round(w * maxPx / h); h = maxPx; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        encodedDataUrl = canvas.toDataURL('image/jpeg', quality);
-
-        document.getElementById('preview').src = encodedDataUrl;
-        document.getElementById('encode-result').style.display = 'block';
-
-        const origKB  = (originalFile.size / 1024).toFixed(1);
-        const newBytes = Math.round((encodedDataUrl.length - encodedDataUrl.indexOf(',') - 1) * 0.75);
-        const newKB   = (newBytes / 1024).toFixed(1);
-        const saved   = Math.max(0, (100 - (newBytes / originalFile.size * 100))).toFixed(0);
-
-        document.getElementById('stats').innerHTML = `
-          <div class="stat">Original: <span>${origKB} KB</span></div>
-          <div class="stat">Compressed: <span>${newKB} KB</span></div>
-          <div class="stat">Saved: <span>${saved}%</span></div>
-          <div class="stat">Resolution: <span>${w}×${h}px</span></div>
-        `;
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(originalFile);
-  }
-
-  function downloadPixl() {
-    if (!encodedDataUrl) return;
-    const blob = new Blob([encodedDataUrl], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'image.pixl';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-    const fl = document.getElementById('copyFlash');
-    fl.classList.add('show');
-    setTimeout(() => fl.classList.remove('show'), 3000);
-  }
-
-  function clearEncode() {
-    originalFile = null; encodedDataUrl = '';
-    document.getElementById('fileInput').value = '';
-    document.getElementById('encode-result').style.display = 'none';
-  }
-
-  // ── DECODE ──
-  function loadPixl(file) {
-    if (!file) return;
-    const prog   = document.getElementById('decodeProgress');
-    const fill   = document.getElementById('progressFill');
-    const errMsg = document.getElementById('errorMsg');
-    const result = document.getElementById('resultBox');
-
-    errMsg.classList.remove('show');
-    result.style.display = 'none';
-    prog.classList.add('show');
-    fill.style.width = '30%';
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      fill.style.width = '65%';
-      try {
-        // Strip whitespace that could corrupt base64
-        const raw = e.target.result.trim().replace(/[\r\n\s]+/g, '');
-
-        let dataUrl = raw.startsWith('data:image') ? raw : 'data:image/jpeg;base64,' + raw;
-
-        const imgEl = document.getElementById('decodedImg');
-
-        imgEl.onload = () => {
-          fill.style.width = '100%';
-          setTimeout(() => { prog.classList.remove('show'); fill.style.width = '0%'; }, 400);
-          result.style.display = 'block';
-          decodedDataUrl = dataUrl;
-          const b64part  = dataUrl.split(',')[1] || '';
-          const approxKB = (Math.round(b64part.length * 0.75) / 1024).toFixed(1);
-          document.getElementById('decodeStats').innerHTML = `
-            <div class="stat">Size: <span>~${approxKB} KB</span></div>
-            <div class="stat">Dimensions: <span>${imgEl.naturalWidth}×${imgEl.naturalHeight}px</span></div>
-            <div class="stat">Status: <span>✓ In memory only</span></div>
-          `;
-        };
-
-        imgEl.onerror = () => {
-          // PNG fallback
-          const b64only  = raw.replace(/^data:[^,]+,/, '');
-          const fallback = 'data:image/png;base64,' + b64only;
-          imgEl.onerror  = () => {
-            prog.classList.remove('show');
-            errMsg.textContent = '❌ Could not decode. Make sure you got the exact .pixl file from your friend and it was not renamed or modified.';
-            errMsg.classList.add('show');
-          };
-          imgEl.src = fallback;
-        };
-
-        imgEl.src = dataUrl;
-
-      } catch (err) {
-        prog.classList.remove('show');
-        errMsg.textContent = '❌ Error: ' + err.message;
-        errMsg.classList.add('show');
-      }
-    };
-
-    reader.onerror = () => {
-      prog.classList.remove('show');
-      errMsg.textContent = '❌ Could not read the file.';
-      errMsg.classList.add('show');
-    };
-
-    reader.readAsText(file);
-  }
-
-  function downloadDecoded() {
-    if (!decodedDataUrl) return;
-    const a = document.createElement('a');
-    a.href = decodedDataUrl;
-    a.download = 'received_image.jpg';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  function clearDecode() {
-    decodedDataUrl = '';
-    document.getElementById('pixlInput').value = '';
-    document.getElementById('resultBox').style.display = 'none';
-    document.getElementById('errorMsg').classList.remove('show');
-  }
-
-  // Drag & drop — encode
-  const dz = document.getElementById('dropzone');
-  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) handleFile(f);
-  });
-
-  // Drag & drop — decode
-  const dzd = document.getElementById('dropzone-decode');
-  dzd.addEventListener('dragover',  e => { e.preventDefault(); dzd.classList.add('drag-over'); });
-  dzd.addEventListener('dragleave', () => dzd.classList.remove('drag-over'));
-  dzd.addEventListener('drop', e => {
-    e.preventDefault(); dzd.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) loadPixl(e.dataTransfer.files[0]);
-  });
-</script>
-</body>
-  </html>
+</html>
