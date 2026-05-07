@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#00ff9d">
+<meta name="description" content="Offline image transfer via text chunks">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PixelPass">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0f' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='%2300ff9d' text-anchor='middle' dy='.3em' font-weight='bold'>PP</text></svg>">
 <title>PixelPass — Offline Image Transfer</title>
 <style>
   :root {
@@ -58,6 +65,9 @@
   .info-banner { background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.2); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); margin-bottom: 1rem; line-height: 1.7; }
   .copy-flash { display: none; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); align-items: center; gap: 0.4rem; margin-top: 0.6rem; }
   .copy-flash.show { display: flex; }
+  .offline-badge { position: fixed; top: 1rem; right: 1rem; padding: 0.5rem 1rem; background: rgba(0,255,157,0.1); border: 1px solid rgba(0,255,157,0.3); border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--accent); display: none; z-index: 100; }
+  .offline-badge.show { display: block; }
+  .offline-badge.offline { background: rgba(255,60,172,0.1); border-color: rgba(255,60,172,0.3); color: var(--accent2); }
   .progress-wrap { margin-top: 1rem; display: none; }
   .progress-wrap.show { display: block; }
   .progress-bar-bg { background: var(--surface); border-radius: 99px; height: 3px; overflow: hidden; }
@@ -76,6 +86,7 @@
 </style>
 </head>
 <body>
+<div class="offline-badge" id="offlineBadge">✓ Ready offline</div>
 <div class="container">
   <header>
     <div class="logo">// offline image transfer</div>
@@ -519,6 +530,32 @@
     const f = e.dataTransfer.files[0];
     if (f && f.type.startsWith('image/')) handleFile(f);
   });
+
+  // Register Service Worker for offline support
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.log('Service Worker registration failed:', err);
+    });
+  }
+
+  // Handle online/offline status
+  const offlineBadge = document.getElementById('offlineBadge');
+  
+  function updateOnlineStatus() {
+    if (navigator.onLine) {
+      offlineBadge.textContent = '✓ Online';
+      offlineBadge.classList.remove('offline');
+      offlineBadge.classList.add('show');
+    } else {
+      offlineBadge.textContent = '⚡ Offline (cached)';
+      offlineBadge.classList.add('offline');
+      offlineBadge.classList.add('show');
+    }
+  }
+
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
 </script>
 </body>
 </html>

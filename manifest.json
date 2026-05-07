@@ -1,0 +1,19 @@
+{
+  "name": "PixelPass",
+  "short_name": "PixelPass",
+  "description": "Offline image transfer via text chunks",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00ff9d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0f' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='%2300ff9d' text-anchor='middle' dy='.3em' font-weight='bold'>PP</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["utilities", "productivity"]
+}
