@@ -36,10 +36,10 @@ self.onmessage = async e => {
 
       self.postMessage({
         type: 'decodeDone',
-        blob: result.bytes.buffer,
+        blob: result.bytes,
         mimeType: result.mimeType,
         mode: result.mode
-      }, [result.bytes.buffer]);
+      });
 
       return;
     }
