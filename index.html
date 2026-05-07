@@ -1,1098 +1,516 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0f0f13" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-<link rel="manifest" href="./manifest.json" />
-<link rel="icon" href="./icons/icon-192.png" />
-
-<title>PixelPass</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelPass — Offline Image Transfer</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:      #0f0f13;
-  --surface: #17171f;
-  --border:  #252530;
-  --accent:  #00e887;
-  --warn:    #ff4c6a;
-  --text:    #e2e2ec;
-  --muted:   #5a5a72;
-  --mono:    'Courier New', Courier, monospace;
-  --sans:    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-}
-
-html, body {
-  overscroll-behavior: none;
-  touch-action: manipulation;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.5;
-  min-height: 100vh;
-}
-
-.wrap {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 2rem 1rem 5rem;
-}
-
-.header { margin-bottom: 2rem; }
-.header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; color: var(--accent); }
-.header p  { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; margin-top: 0.2rem; }
-
-.tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
-
-.tab {
-  padding: 0.65rem 1.25rem;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-family: var(--sans);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: color 0.15s, border-color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab:hover  { color: var(--text); }
-
-.panel { display: none; }
-.panel.active { display: block; }
-
-.section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.section-title {
-  font-size: 0.68rem;
-  font-family: var(--mono);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  margin-bottom: 1rem;
-}
-
-.mode-row { display: flex; gap: 0.75rem; }
-
-.mode-option {
-  flex: 1;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.mode-option:has(input:checked) {
-  border-color: var(--accent);
-  background: rgba(0,232,135,0.05);
-}
-
-.mode-option input[type=radio] { display: none; }
-
-.mode-name {
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--text);
-  margin-bottom: 0.2rem;
-}
-
-.mode-desc {
-  font-size: 0.73rem;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.dropzone {
-  position: relative;
-  border: 2px dashed var(--border);
-  border-radius: 8px;
-  padding: 2rem 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  min-height: 110px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  overflow: hidden;
-}
-
-.dropzone.over,
-.dropzone:focus-within {
-  border-color: var(--accent);
-  background: rgba(0,232,135,0.04);
-}
-
-.dropzone input[type=file] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 2;
-}
-
-.dz-icon {
-  font-size: 1.8rem;
-  pointer-events: none;
-}
-
-#dropzone-label {
-  font-size: 0.8rem;
-  color: var(--muted);
-  font-family: var(--mono);
-  pointer-events: none;
-}
-
-.progress-track {
-  height: 3px;
-  background: var(--border);
-  border-radius: 99px;
-  overflow: hidden;
-  margin: 0.75rem 0;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 99px;
-  width: 0%;
-  display: none;
-  transition: width 0.2s;
-}
-
-.error-text {
-  font-family: var(--mono);
-  font-size: 0.76rem;
-  color: var(--warn);
-  margin-top: 0.6rem;
-  min-height: 1.2em;
-  line-height: 1.5;
-}
-
-.info-box {
-  background: rgba(0,232,135,0.06);
-  border: 1px solid rgba(0,232,135,0.2);
-  border-radius: 6px;
-  padding: 0.65rem 0.85rem;
-  font-family: var(--mono);
-  font-size: 0.73rem;
-  color: var(--accent);
-  line-height: 1.6;
-}
-
-.stat-text {
-  font-family: var(--mono);
-  font-size: 0.73rem;
-  color: var(--muted);
-  margin-top: 0.5rem;
-}
-
-.btn-row {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-top: 0.85rem;
-}
-
-.btn {
-  padding: 0.65rem 1.1rem;
-  border-radius: 6px;
-  border: none;
-  font-family: var(--sans);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-  min-height: 44px;
-}
-
-.btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: #000;
-}
-
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.88;
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.btn-ghost:hover:not(:disabled) {
-  border-color: var(--text);
-}
-
-.btn-danger {
-  background: transparent;
-  color: var(--warn);
-  border: 1px solid rgba(255,76,106,0.35);
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: rgba(255,76,106,0.07);
-}
-
-.paste-area {
-  width: 100%;
-  min-height: 160px;
-  background: #0b0b10;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--accent);
-  font-family: var(--mono);
-  font-size: 16px;
-  padding: 0.85rem;
-  resize: vertical;
-  outline: none;
-  line-height: 1.5;
-  transition: border-color 0.15s;
-}
-
-.paste-area:focus { border-color: var(--accent); }
-.paste-area::placeholder { color: var(--muted); }
-
-.char-count {
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  color: var(--muted);
-  text-align: right;
-  margin-top: 0.3rem;
-}
-
-#decoded-img {
-  max-width: 100%;
-  max-height: 320px;
-  border-radius: 8px;
-  display: block;
-  margin: 0 auto;
-  border: 1px solid var(--border);
-}
-
-.how {
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-}
-
-.how h3 {
-  font-size: 0.68rem;
-  font-family: var(--mono);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--muted);
-  margin-bottom: 1rem;
-}
-
-.how-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-}
-
-.how-step {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.9rem;
-}
-
-.how-num {
-  font-family: var(--mono);
-  font-size: 1.1rem;
-  color: var(--accent);
-  font-weight: 700;
-  margin-bottom: 0.3rem;
-}
-
-.how-text {
-  font-size: 0.76rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-@media (max-width: 480px) {
-  .mode-row { flex-direction: column; }
-  .btn-row { flex-direction: column; }
-  .btn { width: 100%; }
-}
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+    --accent: #00ff9d; --accent2: #ff3cac; --text: #e8e8f0;
+    --muted: #555570; --card: #0f0f18;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,255,157,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,157,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; position: relative; z-index: 1; }
+  header { text-align: center; margin-bottom: 2.5rem; padding-top: 2rem; }
+  .logo { font-size: 0.72rem; font-family: 'Courier New', monospace; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 0.5rem; }
+  h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; line-height: 1; background: linear-gradient(135deg, #fff 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.6rem; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; font-family: 'Courier New', monospace; }
+  .tabs { display: flex; margin-bottom: 1.75rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .tab { flex: 1; padding: 0.85rem; background: var(--surface); border: none; color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--border); }
+  .tab:last-child { border-right: none; }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--accent); color: #000; font-weight: 700; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card-label { font-family: 'Courier New', monospace; font-size: 0.68rem; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .card-label::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+  .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: rgba(0,255,157,0.04); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+  .drop-text { color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.78rem; line-height: 1.6; }
+  .drop-text strong { color: var(--text); }
+  .preview-img { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; margin: 0 auto; border: 1px solid var(--border); }
+  .mode-selector { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .mode-btn { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.7rem; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .mode-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .slider-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .slider-header { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+  .slider-label { font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .slider-val { font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 700; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .slider-hints { display: flex; justify-content: space-between; font-family: 'Courier New', monospace; font-size: 0.62rem; color: var(--muted); margin-top: 0.2rem; }
+  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; padding: 0.75rem 1rem; background: var(--surface); border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.72rem; }
+  .stat { color: var(--muted); }
+  .stat span { color: var(--accent); font-weight: 700; }
+  .btn-row { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 1rem; }
+  .btn { padding: 0.65rem 1.3rem; border-radius: 6px; border: none; font-family: 'Courier New', monospace; font-size: 0.76rem; letter-spacing: 0.05em; cursor: pointer; transition: all 0.18s; text-transform: uppercase; }
+  .btn-primary { background: var(--accent); color: #000; font-weight: 700; }
+  .btn-primary:hover { background: #00e088; transform: translateY(-1px); }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--accent2); border: 1px solid rgba(255,60,172,0.4); }
+  .btn-danger:hover { background: rgba(255,60,172,0.08); }
+  .info-banner { background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.2); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); margin-bottom: 1rem; line-height: 1.7; }
+  .copy-flash { display: none; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); align-items: center; gap: 0.4rem; margin-top: 0.6rem; }
+  .copy-flash.show { display: flex; }
+  .progress-wrap { margin-top: 1rem; display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-bar-bg { background: var(--surface); border-radius: 99px; height: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.3s; }
+  .error-msg { display: none; background: rgba(255,60,172,0.08); border: 1px solid rgba(255,60,172,0.3); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--accent2); margin-top: 1rem; line-height: 1.5; }
+  .error-msg.show { display: block; }
+  .chunks-display { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--text); white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; margin-top: 1rem; }
+  .paste-area { width: 100%; min-height: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--text); resize: vertical; }
+  .how { margin-top: 2.5rem; border-top: 1px solid var(--border); padding-top: 1.75rem; }
+  .how-title { font-family: 'Courier New', monospace; font-size: 0.68rem; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; margin-bottom: 1rem; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.85rem; }
+  .step { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem; }
+  .step-num { font-family: 'Courier New', monospace; font-size: 1.4rem; color: var(--accent); font-weight: 700; line-height: 1; margin-bottom: 0.4rem; }
+  .step-text { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+  @media (max-width: 520px) { .slider-row { grid-template-columns: 1fr; } }
 </style>
 </head>
-
 <body>
-
-<div class="wrap">
-
-  <div class="header">
+<div class="container">
+  <header>
+    <div class="logo">// offline image transfer</div>
     <h1>PixelPass</h1>
-    <p>// offline · no server · no internet required</p>
-  </div>
+    <p class="subtitle">image → base64 chunks → image &nbsp;|&nbsp; no server, no storage, offline</p>
+  </header>
 
   <div class="tabs">
-    <button class="tab active" data-tab="encode">Encode (Sender)</button>
-    <button class="tab" data-tab="decode">Decode (Receiver)</button>
+    <button type="button" class="tab active" onclick="switchTab('encode')">📤 &nbsp;Encode (Sender)</button>
+    <button type="button" class="tab" onclick="switchTab('decode')">📥 &nbsp;Decode (Receiver)</button>
   </div>
 
+  <!-- ENCODE PANEL -->
   <div class="panel active" id="panel-encode">
-
-    <div class="section">
-      <div class="section-title">Mode</div>
-
-      <div class="mode-row">
-        <label class="mode-option">
-          <input type="radio" name="mode" value="exact" checked />
-          <div class="mode-name">EXACT</div>
-          <div class="mode-desc">Lossless · identical file · max 1MB</div>
-        </label>
-
-        <label class="mode-option">
-          <input type="radio" name="mode" value="optimized" />
-          <div class="mode-name">OPTIMIZED</div>
-          <div class="mode-desc">Compressed · smaller text · max 2MB</div>
-        </label>
+    <div class="card">
+      <div class="card-label">Mode Selection</div>
+      <div class="mode-selector">
+        <button type="button" class="mode-btn active" id="mode-exact" onclick="setMode('exact')">Exact</button>
+        <button type="button" class="mode-btn" id="mode-optimized" onclick="setMode('optimized')">Optimized</button>
+      </div>
+      <div id="optimized-settings" style="display: block;">
+        <div class="slider-row">
+          <div>
+            <div class="slider-header">
+              <span class="slider-label">Quality</span>
+              <span class="slider-val" id="qualityVal">75%</span>
+            </div>
+            <input type="range" id="qualitySlider" min="10" max="95" value="75"
+              oninput="document.getElementById('qualityVal').textContent=this.value+'%'; recompress()">
+            <div class="slider-hints"><span>Smaller</span><span>Sharper</span></div>
+          </div>
+          <div>
+            <div class="slider-header">
+              <span class="slider-label">Max Resolution</span>
+              <span class="slider-val" id="sizeVal">800px</span>
+            </div>
+            <input type="range" id="sizeSlider" min="200" max="1920" step="100" value="800"
+              oninput="document.getElementById('sizeVal').textContent=this.value+'px'; recompress()">
+            <div class="slider-hints"><span>200px</span><span>1920px</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title">Image</div>
-
+    <div class="card">
+      <div class="card-label">Step 1 — Pick your image</div>
       <div class="dropzone" id="dropzone">
-        <input type="file" accept="image/*" id="fileInput" />
-        <div class="dz-icon">🖼</div>
-        <div id="dropzone-label">Tap to pick image or drop here</div>
+        <input type="file" accept="image/*" id="fileInput" onchange="handleFile(this.files[0])">
+        <div class="drop-icon">🖼️</div>
+        <div class="drop-text"><strong>Drop image here</strong><br>or click to browse — stays in memory only</div>
       </div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Encode</div>
-
-      <div class="progress-track">
-        <div class="progress-fill" id="encode-progress"></div>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-primary" id="btn-encode">Encode</button>
-        <button class="btn btn-danger" id="btn-clear-encode">Clear</button>
-      </div>
-
-      <div class="error-text" id="encode-error"></div>
     </div>
 
     <div id="encode-result" style="display:none">
-
-      <div class="section">
-        <div class="section-title">Output</div>
-
-        <div id="output-info" style="display:none">
-          <div class="info-box">
-            ✓ Done. Tap <strong>Copy Text</strong> and send it to your friend via SMS, chat, or email.
-            They paste it in the <strong>Decode</strong> tab to see your image.<br><br>
-            Text is kept in memory — not rendered in full to prevent freezing.
-          </div>
-
-          <div class="stat-text" id="output-stats"></div>
+      <div class="card">
+        <div class="card-label">Step 2 — Preview</div>
+        <img id="preview" class="preview-img" alt="preview">
+        <div class="stats" id="stats"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Step 3 — Copy chunks to send</div>
+        <div class="info-banner">
+          Copy all the text chunks below.<br>
+          Send them via any chat/SMS — paste each chunk separately if needed.<br>
+          Receiver pastes all chunks into the <strong>Decode tab</strong>.
         </div>
-
+        <div class="chunks-display" id="chunksDisplay"></div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="btn-copy">Copy Text</button>
-          <button class="btn btn-ghost" id="btn-download-output">Download .pixl</button>
+          <button type="button" class="btn btn-primary" onclick="copyChunks()">📋 Copy All Chunks</button>
+          <button type="button" class="btn btn-danger" onclick="clearEncode()">Clear</button>
+        </div>
+        <div class="copy-flash" id="copyFlash">✓ Chunks copied to clipboard!</div>
+        <div class="progress-wrap" id="encodeProgress">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="encodeProgressFill"></div></div>
         </div>
       </div>
     </div>
-
   </div>
 
+  <!-- DECODE PANEL -->
   <div class="panel" id="panel-decode">
-
-    <div class="section">
-
-      <div class="section-title">Paste encoded text</div>
-
-      <div class="info-box" style="margin-bottom:0.85rem">
-        Paste ALL chunks from your friend. Parts can be in any order —
-        the app auto-sorts, validates, and reconstructs the image.
+    <div class="card">
+      <div class="card-label">Paste all chunks here</div>
+      <div class="info-banner">
+        Your friend sent you chunks of text.<br>
+        Paste them all into the box below — the system will auto-detect and reconstruct the image.
       </div>
-
-      <textarea
-        class="paste-area"
-        id="pasteInput"
-        placeholder="Paste PIXLPASS encoded text here..."
-        spellcheck="false"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"></textarea>
-
-      <div class="char-count" id="paste-char-count"></div>
-
-      <div class="progress-track">
-        <div class="progress-fill" id="decode-progress"></div>
-      </div>
-
+      <textarea class="paste-area" id="pasteArea" placeholder="Paste all PIXLPASS chunks here..."></textarea>
       <div class="btn-row">
-        <button class="btn btn-primary" id="btn-decode">Decode Image</button>
-        <button class="btn btn-danger" id="btn-clear-decode">Clear</button>
+        <button type="button" class="btn btn-primary" onclick="decodeChunks()">🔓 Decode Image</button>
+        <button type="button" class="btn btn-secondary" onclick="clearPaste()">Clear</button>
       </div>
-
-      <div class="error-text" id="decode-error"></div>
-
+      <div class="progress-wrap" id="decodeProgress">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="decodeProgressFill"></div></div>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
     </div>
 
-    <div id="decode-result" style="display:none">
-
-      <div class="section">
-
-        <div class="section-title">Result</div>
-
-        <img id="decoded-img" alt="Decoded image" />
-
-        <div class="stat-text" id="decode-stats"></div>
-
-        <div class="btn-row" style="margin-top:0.85rem">
-          <button class="btn btn-primary" id="btn-save-image">Save Image</button>
-          <button class="btn btn-danger" id="btn-clear-result">Clear</button>
+    <div id="resultBox" style="display:none">
+      <div class="card">
+        <div class="card-label">✓ Your image</div>
+        <img id="decodedImg" class="preview-img" alt="decoded image">
+        <div class="stats" id="decodeStats"></div>
+        <div class="btn-row" style="margin-top:1rem">
+          <button type="button" class="btn btn-primary" onclick="downloadDecoded()">⬇ Save Image</button>
+          <button type="button" class="btn btn-danger" onclick="clearDecode()">Clear</button>
         </div>
-
       </div>
-
     </div>
-
   </div>
 
   <div class="how">
-    <h3>How it works</h3>
-
-    <div class="how-grid">
-
-      <div class="how-step">
-        <div class="how-num">01</div>
-        <div class="how-text">Pick image. EXACT = lossless. OPTIMIZED = smaller, compressed.</div>
-      </div>
-
-      <div class="how-step">
-        <div class="how-num">02</div>
-        <div class="how-text">App encodes into 30KB text chunks — runs in chunks to avoid freezing.</div>
-      </div>
-
-      <div class="how-step">
-        <div class="how-num">03</div>
-        <div class="how-text">Copy text. Send via SMS, chat, email — any plain text channel.</div>
-      </div>
-
-      <div class="how-step">
-        <div class="how-num">04</div>
-        <div class="how-text">Friend pastes all chunks in Decode tab. App validates and shows image.</div>
-      </div>
-
+    <div class="how-title">// how it works</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">01</div><div class="step-text">Pick image — browser encodes it into base64 chunks in memory, disk never touched</div></div>
+      <div class="step"><div class="step-num">02</div><div class="step-text">Copy the chunked text — send via any chat/SMS, each chunk separately if needed</div></div>
+      <div class="step"><div class="step-num">03</div><div class="step-text">Receiver pastes all chunks — system auto-detects, sorts, validates, and reconstructs</div></div>
+      <div class="step"><div class="step-num">04</div><div class="step-text">Image appears instantly in memory — works offline, no servers</div></div>
     </div>
   </div>
-
 </div>
 
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js');
-  });
-}
-</script>
+  let originalFile = null;
+  let encodedChunks = [];
+  let currentMode = 'optimized';
+  let decodedDataUrl = '';
 
-<script>
-const CHUNK_SIZE = 30 * 1024;
-const MAX_EXACT = 1 * 1024 * 1024;
-const MAX_OPTIMIZED = 2 * 1024 * 1024;
-const OPT_MAX_PX = 600;
-const OPT_QUALITY = 0.6;
-
-let currentFile = null;
-let objectUrlActive = null;
-let worker = null;
-
-function initWorker() {
-  if (worker) return;
-
-  worker = new Worker('./worker.js');
-
-  worker.onmessage = e => {
-    const data = e.data;
-
-    if (data.type === 'progress') {
-      setProgress(data.id, data.value);
-      return;
-    }
-
-    if (data.type === 'encodeDone') {
-      onEncodeDone(data.result);
-      return;
-    }
-
-    if (data.type === 'decodeDone') {
-      onDecodeDone(data.blob, data.mimeType, data.mode);
-      return;
-    }
-
-    if (data.type === 'error') {
-      setEncodeUI(false);
-      setDecodeUI(false);
-      showEncodeError(data.message);
-      showDecodeError(data.message);
-    }
-  };
-}
-
-initWorker();
-
-document.querySelectorAll('.tab').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
-
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(el => {
-    el.classList.toggle('active', el.dataset.tab === tab);
-  });
-
-  document.querySelectorAll('.panel').forEach(panel => {
-    panel.classList.remove('active');
-  });
-
-  document.getElementById('panel-' + tab).classList.add('active');
-}
-
-document.getElementById('fileInput').addEventListener('change', e => {
-  const file = e.target.files?.[0];
-
-  if (!file) return;
-
-  currentFile = file;
-
-  document.getElementById('dropzone-label').textContent = file.name;
-  document.getElementById('encode-result').style.display = 'none';
-  document.getElementById('encode-error').textContent = '';
-});
-
-document.getElementById('btn-encode').addEventListener('click', startEncode);
-document.getElementById('btn-decode').addEventListener('click', startDecode);
-
-document.getElementById('btn-copy').addEventListener('click', copyOutput);
-
-document.getElementById('btn-download-output').addEventListener('click', downloadOutput);
-
-document.getElementById('btn-clear-encode').addEventListener('click', clearEncode);
-
-document.getElementById('btn-clear-decode').addEventListener('click', clearDecode);
-
-document.getElementById('btn-clear-result').addEventListener('click', clearDecode);
-
-document.getElementById('btn-save-image').addEventListener('click', downloadDecoded);
-
-async function startEncode() {
-  if (!currentFile) {
-    showEncodeError('Please select an image first.');
-    return;
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('mode-exact').classList.toggle('active', mode === 'exact');
+    document.getElementById('mode-optimized').classList.toggle('active', mode === 'optimized');
+    document.getElementById('optimized-settings').style.display = mode === 'optimized' ? 'block' : 'none';
+    if (originalFile) recompress();
   }
 
-  const mode = document.querySelector('input[name="mode"]:checked').value;
-
-  if (mode === 'exact' && currentFile.size > MAX_EXACT) {
-    showEncodeError(
-      'EXACT mode max is 1MB. Your file is ' +
-      (currentFile.size / 1024 / 1024).toFixed(2) +
-      'MB. Switch to OPTIMIZED.'
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) =>
+      t.classList.toggle('active', (i===0&&tab==='encode')||(i===1&&tab==='decode'))
     );
-    return;
+    document.getElementById('panel-encode').classList.toggle('active', tab==='encode');
+    document.getElementById('panel-decode').classList.toggle('active', tab==='decode');
   }
 
-  if (mode === 'optimized' && currentFile.size > MAX_OPTIMIZED) {
-    showEncodeError(
-      'OPTIMIZED mode max is 2MB. Your file is ' +
-      (currentFile.size / 1024 / 1024).toFixed(2) +
-      'MB.'
-    );
-    return;
+  // ── ENCODE ──
+  function handleFile(file) {
+    if (!file) return;
+    originalFile = file;
+    compress();
   }
 
-  document.getElementById('encode-error').textContent = '';
-
-  setEncodeUI(true);
-
-  if (mode === 'exact') {
-    const buffer = await currentFile.arrayBuffer();
-
-    worker.postMessage({
-      action: 'encodeExact',
-      buffer,
-      meta: {
-        type: currentFile.type,
-        name: currentFile.name
-      }
-    }, [buffer]);
-
-  } else {
-
-    const dataUrl = await compressImage(currentFile);
-
-    if (!dataUrl) {
-      setEncodeUI(false);
-      return;
-    }
-
-    const mimeType =
-      dataUrl.startsWith('data:image/webp')
-        ? 'image/webp'
-        : 'image/jpeg';
-
-    worker.postMessage({
-      action: 'encodeOptimized',
-      dataUrl,
-      meta: {
-        type: mimeType,
-        name: currentFile.name
-      }
-    });
+  function recompress() {
+    if (originalFile) compress();
   }
-}
 
-function compressImage(file) {
-  return new Promise(resolve => {
+  async function compress() {
+    const prog = document.getElementById('encodeProgress');
+    const fill = document.getElementById('encodeProgressFill');
+    prog.classList.add('show');
+    fill.style.width = '10%';
+
+    const quality = currentMode === 'exact' ? 1.0 : parseInt(document.getElementById('qualitySlider').value) / 100;
+    const maxPx = currentMode === 'exact' ? 9999 : parseInt(document.getElementById('sizeSlider').value);
+
+    await new Promise(r => setTimeout(r, 0)); // Yield to avoid freeze
 
     const reader = new FileReader();
+    reader.onload = async (e) => {
+      fill.style.width = '30%';
+      await new Promise(r => setTimeout(r, 0));
 
-    reader.onload = e => {
+      let dataUrl = e.target.result;
+      let w, h;
 
-      const img = new Image();
+      if (currentMode === 'exact') {
+        // For exact, just use the data URL as is
+        const img = new Image();
+        img.onload = () => {
+          w = img.width;
+          h = img.height;
+          processDataUrl(dataUrl, w, h);
+        };
+        img.src = dataUrl;
+      } else {
+        // Optimized mode
+        const img = new Image();
+        img.onload = () => {
+          w = img.width;
+          h = img.height;
+          if (w > maxPx || h > maxPx) {
+            if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+            else       { w = Math.round(w * maxPx / h); h = maxPx; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+          processDataUrl(dataUrl, w, h);
+        };
+        img.src = dataUrl;
+      }
+    };
+    reader.readAsDataURL(originalFile);
+  }
 
-      img.onload = () => {
+  function processDataUrl(dataUrl, width, height) {
+    const fill = document.getElementById('encodeProgressFill');
+    fill.style.width = '50%';
 
-        let w = img.width;
-        let h = img.height;
+    document.getElementById('preview').src = dataUrl;
+    document.getElementById('encode-result').style.display = 'block';
 
-        if (w > OPT_MAX_PX || h > OPT_MAX_PX) {
+    const origKB = (originalFile.size / 1024).toFixed(1);
+    const b64part = dataUrl.split(',')[1];
+    const newBytes = Math.round(b64part.length * 0.75);
+    const newKB = (newBytes / 1024).toFixed(1);
+    const saved = currentMode === 'exact' ? '0' : Math.max(0, (100 - (newBytes / originalFile.size * 100))).toFixed(0);
 
-          if (w > h) {
-            h = Math.round(h * OPT_MAX_PX / w);
-            w = OPT_MAX_PX;
-          } else {
-            w = Math.round(w * OPT_MAX_PX / h);
-            h = OPT_MAX_PX;
+    document.getElementById('stats').innerHTML = `
+      <div class="stat">Original: <span>${origKB} KB</span></div>
+      <div class="stat">Encoded: <span>${newKB} KB</span></div>
+      <div class="stat">Saved: <span>${saved}%</span></div>
+      <div class="stat">Resolution: <span>${width}×${height}px</span></div>
+      <div class="stat">Mode: <span>${currentMode}</span></div>
+    `;
+
+    // Chunk the data
+    chunkData(b64part, originalFile.name, originalFile.type);
+  }
+
+  async function chunkData(b64data, filename, filetype) {
+    const fill = document.getElementById('encodeProgressFill');
+    fill.style.width = '70%';
+    
+    const chunkSize = 30000; // 30KB
+    const totalChunks = Math.ceil(b64data.length / chunkSize);
+    encodedChunks = [];
+    
+    const header = `PIXLPASS|v1|mode=${currentMode}|type=${filetype}|name=${filename}|total=${totalChunks}`;
+    
+    for (let i = 0; i < totalChunks; i++) {
+      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 10 chunks
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, b64data.length);
+      const chunk = b64data.slice(start, end);
+      encodedChunks.push(`${header}\n\n---PART ${i+1}/${totalChunks}---\n${chunk}`);
+    }
+    
+    fill.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('encodeProgress').classList.remove('show');
+      fill.style.width = '0%';
+    }, 400);
+    
+    displayChunks();
+  }
+
+  function displayChunks() {
+    const display = document.getElementById('chunksDisplay');
+    display.textContent = encodedChunks.join('\n\n');
+  }
+
+  function copyChunks() {
+    navigator.clipboard.writeText(encodedChunks.join('\n\n')).then(() => {
+      const fl = document.getElementById('copyFlash');
+      fl.classList.add('show');
+      setTimeout(() => fl.classList.remove('show'), 3000);
+    });
+  }
+
+  function clearEncode() {
+    originalFile = null; encodedChunks = [];
+    document.getElementById('fileInput').value = '';
+    document.getElementById('encode-result').style.display = 'none';
+  }
+
+  // ── DECODE ──
+  async function decodeChunks() {
+    const pasteArea = document.getElementById('pasteArea');
+    const text = pasteArea.value.trim();
+    if (!text) return;
+    
+    const prog = document.getElementById('decodeProgress');
+    const fill = document.getElementById('decodeProgressFill');
+    const errMsg = document.getElementById('errorMsg');
+    const result = document.getElementById('resultBox');
+    
+    errMsg.classList.remove('show');
+    result.style.display = 'none';
+    prog.classList.add('show');
+    fill.style.width = '20%';
+    
+    try {
+      const parts = await parseChunksAsync(text);
+      fill.style.width = '60%';
+      
+      const { b64data, metadata } = await reconstructDataAsync(parts);
+      fill.style.width = '80%';
+      
+      const dataUrl = `data:${metadata.type};base64,${b64data}`;
+      
+      const imgEl = document.getElementById('decodedImg');
+      imgEl.onload = () => {
+        fill.style.width = '100%';
+        setTimeout(() => { prog.classList.remove('show'); fill.style.width = '0%'; }, 400);
+        result.style.display = 'block';
+        decodedDataUrl = dataUrl;
+        const approxKB = (Math.round(b64data.length * 0.75) / 1024).toFixed(1);
+        document.getElementById('decodeStats').innerHTML = `
+          <div class="stat">Size: <span>~${approxKB} KB</span></div>
+          <div class="stat">Dimensions: <span>${imgEl.naturalWidth}×${imgEl.naturalHeight}px</span></div>
+          <div class="stat">Mode: <span>${metadata.mode}</span></div>
+          <div class="stat">Status: <span>✓ Reconstructed</span></div>
+        `;
+      };
+      imgEl.src = dataUrl;
+      
+    } catch (err) {
+      prog.classList.remove('show');
+      errMsg.textContent = '❌ ' + err.message;
+      errMsg.classList.add('show');
+    }
+  }
+
+  async function parseChunksAsync(text) {
+    const lines = text.split('\n');
+    const parts = [];
+    let currentPart = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (i % 1000 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 1000 lines
+      const line = lines[i];
+      if (line.startsWith('PIXLPASS|')) {
+        if (currentPart) parts.push(currentPart);
+        const header = line.split('|');
+        currentPart = {
+          header: line,
+          version: header[1],
+          mode: header[2].split('=')[1],
+          type: header[3].split('=')[1],
+          name: header[4].split('=')[1],
+          total: parseInt(header[5].split('=')[1]),
+          index: null,
+          data: ''
+        };
+      } else if (line.startsWith('---PART ')) {
+        if (currentPart) {
+          const match = line.match(/---PART (\d+)\/(\d+)---/);
+          if (match) {
+            currentPart.index = parseInt(match[1]) - 1;
           }
         }
+      } else if (currentPart && line.trim()) {
+        currentPart.data += line.trim();
+      }
+    }
+    if (currentPart) parts.push(currentPart);
+    
+    return parts;
+  }
 
-        const canvas = document.createElement('canvas');
-
-        canvas.width = w;
-        canvas.height = h;
-
-        const ctx = canvas.getContext('2d');
-
-        ctx.drawImage(img, 0, 0, w, h);
-
-        let url = canvas.toDataURL('image/webp', OPT_QUALITY);
-
-        if (!url.startsWith('data:image/webp')) {
-          url = canvas.toDataURL('image/jpeg', OPT_QUALITY);
-        }
-
-        resolve(url);
-      };
-
-      img.onerror = () => {
-        showEncodeError('Could not load image.');
-        resolve(null);
-      };
-
-      img.src = e.target.result;
+  async function reconstructDataAsync(parts) {
+    if (parts.length === 0) throw new Error('No valid PIXLPASS chunks found.');
+    
+    const metadata = {
+      mode: parts[0].mode,
+      type: parts[0].type,
+      name: parts[0].name,
+      total: parts[0].total
     };
-
-    reader.onerror = () => {
-      showEncodeError('Could not read file.');
-      resolve(null);
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
-function onEncodeDone(result) {
-
-  setEncodeUI(false);
-
-  window._encodedResult = result;
-
-  const sizeKB = (new Blob([result]).size / 1024).toFixed(1);
-
-  const chunkMatch = result.match(/total=(\d+)/);
-
-  const chunks = chunkMatch ? chunkMatch[1] : '?';
-
-  document.getElementById('output-info').style.display = 'block';
-
-  document.getElementById('output-stats').textContent =
-    sizeKB + ' KB total · ' + chunks + ' chunks';
-
-  document.getElementById('encode-result').style.display = 'block';
-
-  setTimeout(() => {
-    setProgress('encode-progress', 0);
-  }, 1200);
-}
-
-function copyOutput() {
-  const result = window._encodedResult;
-
-  if (!result) return;
-
-  navigator.clipboard.writeText(result)
-    .then(() => {
-      flashBtn('btn-copy', '✓ Copied!');
-    })
-    .catch(() => {
-      fallbackCopy(result);
-    });
-}
-
-function fallbackCopy(text) {
-
-  const ta = document.createElement('textarea');
-
-  ta.value = text;
-
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-
-  document.body.appendChild(ta);
-
-  ta.focus();
-  ta.select();
-
-  document.execCommand('copy');
-
-  document.body.removeChild(ta);
-
-  flashBtn('btn-copy', '✓ Copied!');
-}
-
-function downloadOutput() {
-
-  const result = window._encodedResult;
-
-  if (!result) return;
-
-  const blob = new Blob([result], { type: 'text/plain' });
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-
-  a.href = url;
-  a.download = 'image.pixl';
-
-  document.body.appendChild(a);
-
-  a.click();
-
-  document.body.removeChild(a);
-
-  URL.revokeObjectURL(url);
-}
-
-function clearEncode() {
-  currentFile = null;
-
-  window._encodedResult = null;
-
-  document.getElementById('fileInput').value = '';
-
-  document.getElementById('dropzone-label').textContent =
-    'Tap to pick image or drop here';
-
-  document.getElementById('encode-result').style.display = 'none';
-
-  document.getElementById('encode-error').textContent = '';
-
-  setProgress('encode-progress', 0);
-}
-
-function startDecode() {
-
-  const text = document.getElementById('pasteInput').value.trim();
-
-  if (!text) {
-    showDecodeError('Please paste the encoded text first.');
-    return;
+    
+    // Check all parts have same metadata
+    for (const part of parts) {
+      if (part.mode !== metadata.mode || part.type !== metadata.type || part.total !== metadata.total) {
+        throw new Error('Inconsistent chunk metadata.');
+      }
+    }
+    
+    // Sort by index
+    parts.sort((a, b) => a.index - b.index);
+    
+    // Check for duplicates and missing
+    const seen = new Set();
+    for (const part of parts) {
+      if (part.index === null) throw new Error('Invalid chunk format.');
+      if (seen.has(part.index)) throw new Error('Duplicate chunk found.');
+      seen.add(part.index);
+    }
+    
+    for (let i = 0; i < metadata.total; i++) {
+      if (!seen.has(i)) throw new Error(`Missing chunk ${i+1}/${metadata.total}.`);
+    }
+    
+    // Reconstruct base64
+    let b64data = '';
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 10 === 0) await new Promise(r => setTimeout(r, 0)); // Yield every 10 parts
+      b64data += parts[i].data;
+    }
+    
+    return { b64data, metadata };
   }
 
-  setDecodeUI(true);
-
-  clearDecodeResult();
-
-  document.getElementById('decode-error').textContent = '';
-
-  worker.postMessage({
-    action: 'decode',
-    text
-  });
-}
-
-function onDecodeDone(blobData, mimeType, mode) {
-
-  setDecodeUI(false);
-
-  let blob;
-
-  // FIX: rebuild blob correctly
-  if (blobData instanceof ArrayBuffer) {
-
-    blob = new Blob(
-      [new Uint8Array(blobData)],
-      { type: mimeType }
-    );
-
-  } else {
-
-    blob = new Blob(
-      [blobData],
-      { type: mimeType }
-    );
+  function downloadDecoded() {
+    if (!decodedDataUrl) return;
+    const a = document.createElement('a');
+    a.href = decodedDataUrl;
+    a.download = 'received_image.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
-  // cleanup old URL
-  if (objectUrlActive) {
-    URL.revokeObjectURL(objectUrlActive);
+  function clearDecode() {
+    decodedDataUrl = '';
+    document.getElementById('pasteArea').value = '';
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('errorMsg').classList.remove('show');
   }
 
-  // create fresh object URL
-  const url = URL.createObjectURL(blob);
-
-  objectUrlActive = url;
-
-  const imgEl = document.getElementById('decoded-img');
-
-  // clear previous state
-  imgEl.removeAttribute('src');
-
-  imgEl.onerror = function() {
-
-    showDecodeError(
-      'Could not render decoded image. Data may be corrupted.'
-    );
-  };
-
-  imgEl.onload = function() {
-
-    document.getElementById('decode-result').style.display = 'block';
-
-    document.getElementById('decode-stats').textContent =
-      (blob.size / 1024).toFixed(1) +
-      ' KB · ' +
-      mimeType +
-      ' · mode: ' +
-      mode;
-
-    window._decodedBlob = blob;
-    window._decodedMimeType = mimeType;
-  };
-
-  // IMPORTANT:
-  // delay setting src slightly for Android Chrome
-  requestAnimationFrame(() => {
-    imgEl.src = url;
-  });
-
-  setTimeout(function() {
-    setProgress('decode-progress', 0);
-  }, 1200);
-}
-
-function downloadDecoded() {
-
-  const blob = window._decodedBlob;
-
-  if (!blob) return;
-
-  const ext =
-    window._decodedMimeType === 'image/png'
-      ? 'png'
-      : window._decodedMimeType === 'image/webp'
-      ? 'webp'
-      : 'jpg';
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-
-  a.href = url;
-  a.download = 'received_image.' + ext;
-
-  document.body.appendChild(a);
-
-  a.click();
-
-  document.body.removeChild(a);
-
-  URL.revokeObjectURL(url);
-}
-
-function clearDecode() {
-
-  document.getElementById('pasteInput').value = '';
-
-  document.getElementById('paste-char-count').textContent = '';
-
-  document.getElementById('decode-error').textContent = '';
-
-  clearDecodeResult();
-
-  setProgress('decode-progress', 0);
-}
-
-function clearDecodeResult() {
-
-  document.getElementById('decode-result').style.display = 'none';
-
-  if (objectUrlActive) {
-    URL.revokeObjectURL(objectUrlActive);
-    objectUrlActive = null;
+  function clearPaste() {
+    document.getElementById('pasteArea').value = '';
+    document.getElementById('errorMsg').classList.remove('show');
   }
 
-  document.getElementById('decoded-img').src = '';
-
-  window._decodedBlob = null;
-}
-
-function setEncodeUI(busy) {
-
-  const btn = document.getElementById('btn-encode');
-
-  btn.disabled = busy;
-
-  btn.textContent = busy
-    ? 'Encoding…'
-    : 'Encode';
-}
-
-function setDecodeUI(busy) {
-
-  const btn = document.getElementById('btn-decode');
-
-  btn.disabled = busy;
-
-  btn.textContent = busy
-    ? 'Decoding…'
-    : 'Decode Image';
-}
-
-function setProgress(id, pct) {
-
-  const el = document.getElementById(id);
-
-  el.style.width = pct + '%';
-
-  el.style.display =
-    pct > 0
-      ? 'block'
-      : 'none';
-}
-
-function showEncodeError(msg) {
-  document.getElementById('encode-error').textContent = '⚠ ' + msg;
-}
-
-function showDecodeError(msg) {
-  document.getElementById('decode-error').textContent = '⚠ ' + msg;
-}
-
-function flashBtn(id, label) {
-
-  const btn = document.getElementById(id);
-
-  const orig = btn.textContent;
-
-  btn.textContent = label;
-
-  setTimeout(() => {
-    btn.textContent = orig;
-  }, 2000);
-}
-
-document.getElementById('pasteInput').addEventListener('input', function() {
-
-  const len = this.value.length;
-
-  document.getElementById('paste-char-count').textContent =
-    len > 0
-      ? len.toLocaleString() + ' chars'
-      : '';
-});
-
-(function() {
-
+  // Drag & drop — encode
   const dz = document.getElementById('dropzone');
-
-  dz.addEventListener('dragover', e => {
-    e.preventDefault();
-    dz.classList.add('over');
-  });
-
-  dz.addEventListener('dragleave', () => {
-    dz.classList.remove('over');
-  });
-
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop', e => {
-
-    e.preventDefault();
-
-    dz.classList.remove('over');
-
-    const file = e.dataTransfer.files[0];
-
-    if (!file || !file.type.startsWith('image/')) return;
-
-    currentFile = file;
-
-    document.getElementById('dropzone-label').textContent = file.name;
-
-    document.getElementById('encode-result').style.display = 'none';
-
-    document.getElementById('encode-error').textContent = '';
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleFile(f);
   });
-
-})();
 </script>
-
 </body>
 </html>
