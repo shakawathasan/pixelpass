@@ -3,12 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#00e887">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PixelPass">
-<link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
 <title>PixelPass</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,14 +34,11 @@ body {
   padding: 2rem 1rem 5rem;
 }
 
-/* ── Header ── */
 .header { margin-bottom: 2rem; }
 .header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; color: var(--accent); }
 .header p  { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; margin-top: 0.2rem; }
 
-/* ── Tabs ── */
 .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
-
 .tab {
   padding: 0.65rem 1.25rem;
   background: none;
@@ -60,8 +51,6 @@ body {
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   transition: color 0.15s, border-color 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
 }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab:hover  { color: var(--text); }
@@ -69,7 +58,6 @@ body {
 .panel { display: none; }
 .panel.active { display: block; }
 
-/* ── Section card ── */
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -87,9 +75,7 @@ body {
   margin-bottom: 1rem;
 }
 
-/* ── Mode selector ── */
 .mode-row { display: flex; gap: 0.75rem; margin-bottom: 0; }
-
 .mode-option {
   flex: 1;
   border: 1px solid var(--border);
@@ -97,7 +83,6 @@ body {
   padding: 0.75rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  -webkit-tap-highlight-color: transparent;
 }
 .mode-option:has(input:checked) {
   border-color: var(--accent);
@@ -122,10 +107,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  overflow: hidden;
 }
 .dropzone.over,
 .dropzone:focus-within { border-color: var(--accent); background: rgba(0,232,135,0.04); }
 
+/* KEY FIX: file input must be visible/tappable */
 .dropzone input[type=file] {
   position: absolute;
   inset: 0;
@@ -134,12 +121,12 @@ body {
   opacity: 0;
   cursor: pointer;
   font-size: 16px;
+  z-index: 2;
 }
 
-.dz-icon { font-size: 1.8rem; }
-#dropzone-label { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); }
+.dz-icon { font-size: 1.8rem; pointer-events: none; }
+#dropzone-label { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); pointer-events: none; }
 
-/* ── Progress ── */
 .progress-track {
   height: 3px;
   background: var(--border);
@@ -147,6 +134,615 @@ body {
   overflow: hidden;
   margin: 0.75rem 0;
 }
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  width: 0%;
+  display: none;
+  transition: width 0.2s;
+}
+
+.error-text {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--warn);
+  margin-top: 0.6rem;
+  min-height: 1.2em;
+  line-height: 1.5;
+}
+
+.info-box {
+  background: rgba(0,232,135,0.06);
+  border: 1px solid rgba(0,232,135,0.2);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  font-family: var(--mono);
+  font-size: 0.73rem;
+  color: var(--accent);
+  line-height: 1.6;
+}
+
+.stat-text {
+  font-family: var(--mono);
+  font-size: 0.73rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.btn-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.85rem; }
+.btn {
+  padding: 0.65rem 1.1rem;
+  border-radius: 6px;
+  border: none;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  min-height: 44px;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--text); }
+.btn-danger { background: transparent; color: var(--warn); border: 1px solid rgba(255,76,106,0.35); }
+.btn-danger:hover:not(:disabled) { background: rgba(255,76,106,0.07); }
+
+.paste-area {
+  width: 100%;
+  min-height: 160px;
+  background: #0b0b10;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 16px;
+  padding: 0.85rem;
+  resize: vertical;
+  outline: none;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+}
+.paste-area:focus { border-color: var(--accent); }
+.paste-area::placeholder { color: var(--muted); }
+
+.char-count {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 0.3rem;
+}
+
+#decoded-img {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+}
+
+.how { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.how h3 { font-size: 0.68rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 1rem; }
+.how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
+.how-step { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem; }
+.how-num  { font-family: var(--mono); font-size: 1.1rem; color: var(--accent); font-weight: 700; margin-bottom: 0.3rem; }
+.how-text { font-size: 0.76rem; color: var(--muted); line-height: 1.5; }
+
+@media (max-width: 480px) {
+  .mode-row { flex-direction: column; }
+  .btn-row  { flex-direction: column; }
+  .btn      { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>PixelPass</h1>
+    <p>// offline · no server · no internet required</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('encode')">Encode (Sender)</button>
+    <button class="tab"        onclick="switchTab('decode')">Decode (Receiver)</button>
+  </div>
+
+  <!-- ENCODE -->
+  <div class="panel active" id="panel-encode">
+
+    <div class="section">
+      <div class="section-title">Mode</div>
+      <div class="mode-row">
+        <label class="mode-option">
+          <input type="radio" name="mode" value="exact" checked>
+          <div class="mode-name">EXACT</div>
+          <div class="mode-desc">Lossless · identical file · max 1MB</div>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="optimized">
+          <div class="mode-name">OPTIMIZED</div>
+          <div class="mode-desc">Compressed · smaller text · max 2MB</div>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Image</div>
+      <div class="dropzone" id="dropzone">
+        <input type="file" accept="image/*" id="fileInput">
+        <div class="dz-icon">🖼</div>
+        <div id="dropzone-label">Tap to pick image or drop here</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Encode</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="encode-progress"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-encode" onclick="startEncode()">Encode</button>
+        <button class="btn btn-danger"  onclick="clearEncode()">Clear</button>
+      </div>
+      <div class="error-text" id="encode-error"></div>
+    </div>
+
+    <div id="encode-result" style="display:none">
+      <div class="section">
+        <div class="section-title">Output</div>
+        <div id="output-info" style="display:none">
+          <div class="info-box">
+            ✓ Done. Tap <strong>Copy Text</strong> and send it to your friend via SMS, chat, or email.
+            They paste it in the <strong>Decode</strong> tab to see your image.<br><br>
+            Text is kept in memory — not rendered in full to prevent freezing.
+          </div>
+          <div class="stat-text" id="output-stats"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-copy"     onclick="copyOutput()">Copy Text</button>
+          <button class="btn btn-ghost"                     onclick="downloadOutput()">Download .pixl</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DECODE -->
+  <div class="panel" id="panel-decode">
+
+    <div class="section">
+      <div class="section-title">Paste encoded text</div>
+      <div class="info-box" style="margin-bottom:0.85rem">
+        Paste ALL chunks from your friend. Parts can be in any order —
+        the app auto-sorts, validates, and reconstructs the image.
+      </div>
+      <textarea class="paste-area" id="pasteInput"
+        placeholder="Paste PIXLPASS encoded text here..."
+        spellcheck="false" autocomplete="off"></textarea>
+      <div class="char-count" id="paste-char-count"></div>
+      <div class="progress-track">
+        <div class="progress-fill" id="decode-progress"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-decode" onclick="startDecode()">Decode Image</button>
+        <button class="btn btn-danger"  onclick="clearDecode()">Clear</button>
+      </div>
+      <div class="error-text" id="decode-error"></div>
+    </div>
+
+    <div id="decode-result" style="display:none">
+      <div class="section">
+        <div class="section-title">Result</div>
+        <img id="decoded-img" alt="Decoded image">
+        <div class="stat-text" id="decode-stats"></div>
+        <div class="btn-row" style="margin-top:0.85rem">
+          <button class="btn btn-primary" onclick="downloadDecoded()">Save Image</button>
+          <button class="btn btn-danger"  onclick="clearDecode()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="how">
+    <h3>How it works</h3>
+    <div class="how-grid">
+      <div class="how-step"><div class="how-num">01</div><div class="how-text">Pick image. EXACT = lossless. OPTIMIZED = smaller, compressed.</div></div>
+      <div class="how-step"><div class="how-num">02</div><div class="how-text">App encodes into 30KB text chunks — runs in chunks to avoid freezing.</div></div>
+      <div class="how-step"><div class="how-num">03</div><div class="how-text">Copy text. Send via SMS, chat, email — any plain text channel.</div></div>
+      <div class="how-step"><div class="how-num">04</div><div class="how-text">Friend pastes all chunks in Decode tab. App validates and shows image.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  ALL LOGIC RUNS IN-PAGE (no Worker/Blob URL)
+//  This avoids file:// security restrictions
+//  that break Web Workers in local HTML files.
+// ─────────────────────────────────────────────
+
+const CHUNK_SIZE    = 30 * 1024;
+const MAX_EXACT     = 1 * 1024 * 1024;
+const MAX_OPTIMIZED = 2 * 1024 * 1024;
+const OPT_MAX_PX    = 600;
+const OPT_QUALITY   = 0.6;
+
+let currentFile     = null;
+let objectUrlActive = null;
+
+function tick() { return new Promise(r => setTimeout(r, 0)); }
+
+// ── Tabs ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'encode') || (i === 1 && tab === 'decode'));
+  });
+  document.getElementById('panel-encode').classList.toggle('active', tab === 'encode');
+  document.getElementById('panel-decode').classList.toggle('active', tab === 'decode');
+}
+
+// ── File picker ──
+document.getElementById('fileInput').addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    currentFile = this.files[0];
+    document.getElementById('dropzone-label').textContent = currentFile.name;
+    document.getElementById('encode-result').style.display = 'none';
+    document.getElementById('encode-error').textContent = '';
+    document.getElementById('output-info').style.display = 'none';
+  }
+});
+
+// ── ENCODE ──
+async function startEncode() {
+  if (!currentFile) { showEncodeError('Please select an image first.'); return; }
+
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+
+  if (mode === 'exact' && currentFile.size > MAX_EXACT) {
+    showEncodeError('EXACT mode max is 1MB. Your file is ' + (currentFile.size/1024/1024).toFixed(2) + 'MB. Switch to OPTIMIZED.');
+    return;
+  }
+  if (mode === 'optimized' && currentFile.size > MAX_OPTIMIZED) {
+    showEncodeError('OPTIMIZED mode max is 2MB. Your file is ' + (currentFile.size/1024/1024).toFixed(2) + 'MB.');
+    return;
+  }
+
+  setEncodeUI(true);
+  setProgress('encode-progress', 5);
+  document.getElementById('encode-error').textContent = '';
+
+  try {
+    let result;
+    if (mode === 'exact') {
+      const buf = await currentFile.arrayBuffer();
+      result = await encodeExact(buf, { type: currentFile.type, name: currentFile.name });
+    } else {
+      const dataUrl = await compressImage(currentFile);
+      if (!dataUrl) { setEncodeUI(false); return; }
+      const mimeType = dataUrl.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+      result = await encodeOptimized(dataUrl, { type: mimeType, name: currentFile.name });
+    }
+    onEncodeDone(result);
+  } catch (err) {
+    setEncodeUI(false);
+    showEncodeError(err.message);
+  }
+}
+
+async function encodeExact(buffer, meta) {
+  const bytes = new Uint8Array(buffer);
+  const total = bytes.length;
+  let b64 = '';
+  const BATCH = 8192;
+  for (let i = 0; i < total; i += BATCH) {
+    const slice = bytes.subarray(i, i + BATCH);
+    b64 += String.fromCharCode.apply(null, slice);
+    setProgress('encode-progress', Math.round((i / total) * 50));
+    await tick();
+  }
+  const encoded = btoa(b64);
+  setProgress('encode-progress', 55);
+  return buildChunks(encoded, 'exact', meta);
+}
+
+async function encodeOptimized(dataUrl, meta) {
+  const b64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+  setProgress('encode-progress', 55);
+  return buildChunks(b64, 'optimized', meta);
+}
+
+async function buildChunks(b64, mode, meta) {
+  const totalChunks = Math.ceil(b64.length / CHUNK_SIZE);
+  const header = 'PIXLPASS|v1|mode=' + mode + '|type=' + meta.type + '|name=' + meta.name + '|total=' + totalChunks + '\n';
+  const parts = [];
+  for (let i = 0; i < totalChunks; i++) {
+    parts.push('---PART ' + (i + 1) + '/' + totalChunks + '---\n' + b64.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
+    setProgress('encode-progress', 55 + Math.round(((i + 1) / totalChunks) * 40));
+    await tick();
+  }
+  return header + parts.join('\n\n');
+}
+
+function compressImage(file) {
+  return new Promise(function(resolve) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        let w = img.width, h = img.height;
+        if (w > OPT_MAX_PX || h > OPT_MAX_PX) {
+          if (w > h) { h = Math.round(h * OPT_MAX_PX / w); w = OPT_MAX_PX; }
+          else       { w = Math.round(w * OPT_MAX_PX / h); h = OPT_MAX_PX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let url = canvas.toDataURL('image/webp', OPT_QUALITY);
+        if (!url.startsWith('data:image/webp')) url = canvas.toDataURL('image/jpeg', OPT_QUALITY);
+        resolve(url);
+      };
+      img.onerror = function() { showEncodeError('Could not load image.'); resolve(null); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function() { showEncodeError('Could not read file.'); resolve(null); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function onEncodeDone(result) {
+  setEncodeUI(false);
+  setProgress('encode-progress', 100);
+  window._encodedResult = result;
+
+  const sizeKB     = (new Blob([result]).size / 1024).toFixed(1);
+  const chunkMatch = result.match(/total=(\d+)/);
+  const chunks     = chunkMatch ? chunkMatch[1] : '?';
+
+  document.getElementById('output-info').style.display = 'block';
+  document.getElementById('output-stats').textContent = sizeKB + ' KB total · ' + chunks + ' chunks';
+  document.getElementById('encode-result').style.display = 'block';
+  setTimeout(function() { setProgress('encode-progress', 0); }, 1200);
+}
+
+function copyOutput() {
+  const result = window._encodedResult;
+  if (!result) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(result)
+      .then(function() { flashBtn('btn-copy', '✓ Copied!'); })
+      .catch(function() { fallbackCopy(result); });
+  } else {
+    fallbackCopy(result);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select(); ta.setSelectionRange(0, 9999999);
+  try { document.execCommand('copy'); flashBtn('btn-copy', '✓ Copied!'); }
+  catch(e) { alert('Auto-copy failed. Please use Download .pixl instead.'); }
+  document.body.removeChild(ta);
+}
+
+function downloadOutput() {
+  const result = window._encodedResult;
+  if (!result) return;
+  const blob = new Blob([result], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'image.pixl';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function clearEncode() {
+  currentFile = null;
+  window._encodedResult = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('dropzone-label').textContent = 'Tap to pick image or drop here';
+  document.getElementById('encode-result').style.display = 'none';
+  document.getElementById('encode-error').textContent = '';
+  document.getElementById('output-info').style.display = 'none';
+  setProgress('encode-progress', 0);
+}
+
+// ── DECODE ──
+async function startDecode() {
+  const text = document.getElementById('pasteInput').value.trim();
+  if (!text) { showDecodeError('Please paste the encoded text first.'); return; }
+
+  setDecodeUI(true);
+  setProgress('decode-progress', 5);
+  clearDecodeResult();
+  document.getElementById('decode-error').textContent = '';
+
+  try {
+    const result = await decode(text);
+    onDecodeDone(result.blob, result.mimeType, result.mode);
+  } catch (err) {
+    setDecodeUI(false);
+    showDecodeError(err.message);
+  }
+}
+
+async function decode(text) {
+  const firstLine = text.trim().split('\n')[0];
+  if (!firstLine.startsWith('PIXLPASS|v1|')) throw new Error('Invalid format: missing PIXLPASS header.');
+
+  const fields = {};
+  firstLine.split('|').forEach(function(f) {
+    const eq = f.indexOf('=');
+    if (eq !== -1) fields[f.slice(0, eq)] = f.slice(eq + 1);
+  });
+
+  const totalChunks = parseInt(fields.total, 10);
+  const mimeType    = fields.type || 'image/jpeg';
+  const mode        = fields.mode || 'exact';
+
+  if (!totalChunks || isNaN(totalChunks)) throw new Error('Invalid header: missing total chunks.');
+  setProgress('decode-progress', 10);
+
+  const partRegex = /---PART (\d+)\/(\d+)---\n([\s\S]*?)(?=\n\n---PART |\s*$)/g;
+  const partsMap  = new Map();
+  let match;
+
+  while ((match = partRegex.exec(text)) !== null) {
+    const idx  = parseInt(match[1], 10);
+    const data = match[3].replace(/[\r\n\s]/g, '');
+    if (partsMap.has(idx)) throw new Error('Duplicate chunk: part ' + idx + '.');
+    partsMap.set(idx, data);
+    await tick();
+  }
+
+  setProgress('decode-progress', 30);
+
+  const missing = [];
+  for (let i = 1; i <= totalChunks; i++) {
+    if (!partsMap.has(i)) missing.push(i);
+  }
+  if (missing.length > 0) throw new Error('Missing chunks: ' + missing.join(', ') + '. Need all ' + totalChunks + ' parts.');
+
+  let fullB64 = '';
+  for (let i = 1; i <= totalChunks; i++) {
+    fullB64 += partsMap.get(i);
+    setProgress('decode-progress', 30 + Math.round((i / totalChunks) * 40));
+    await tick();
+  }
+
+  setProgress('decode-progress', 75);
+
+  if (!/^[A-Za-z0-9+/]+=*$/.test(fullB64)) throw new Error('Corrupted data: invalid Base64 characters.');
+
+  const binary = atob(fullB64);
+  const len    = binary.length;
+  const bytes  = new Uint8Array(len);
+  const BATCH  = 8192;
+
+  for (let i = 0; i < len; i += BATCH) {
+    const end = Math.min(i + BATCH, len);
+    for (let j = i; j < end; j++) bytes[j] = binary.charCodeAt(j);
+    setProgress('decode-progress', Math.min(75 + Math.round(((i + BATCH) / len) * 20), 95));
+    await tick();
+  }
+
+  const blob = new Blob([bytes], { type: mimeType });
+  setProgress('decode-progress', 100);
+  return { blob, mimeType, mode };
+}
+
+function onDecodeDone(blob, mimeType, mode) {
+  setDecodeUI(false);
+  setProgress('decode-progress', 100);
+
+  if (objectUrlActive) { URL.revokeObjectURL(objectUrlActive); }
+  const url = URL.createObjectURL(blob);
+  objectUrlActive = url;
+
+  const imgEl = document.getElementById('decoded-img');
+  imgEl.onload = function() {
+    document.getElementById('decode-result').style.display = 'block';
+    document.getElementById('decode-stats').textContent =
+      (blob.size / 1024).toFixed(1) + ' KB · ' + mimeType + ' · mode: ' + mode;
+    window._decodedBlob     = blob;
+    window._decodedMimeType = mimeType;
+  };
+  imgEl.src = url;
+  setTimeout(function() { setProgress('decode-progress', 0); }, 1200);
+}
+
+function downloadDecoded() {
+  const blob = window._decodedBlob;
+  if (!blob) return;
+  const ext = window._decodedMimeType === 'image/png'  ? 'png'
+            : window._decodedMimeType === 'image/webp' ? 'webp' : 'jpg';
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = 'received_image.' + ext;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function clearDecode() {
+  document.getElementById('pasteInput').value = '';
+  document.getElementById('paste-char-count').textContent = '';
+  document.getElementById('decode-error').textContent = '';
+  clearDecodeResult();
+  setProgress('decode-progress', 0);
+}
+
+function clearDecodeResult() {
+  document.getElementById('decode-result').style.display = 'none';
+  if (objectUrlActive) { URL.revokeObjectURL(objectUrlActive); objectUrlActive = null; }
+  document.getElementById('decoded-img').src = '';
+  window._decodedBlob = null;
+}
+
+// ── UI helpers ──
+function setEncodeUI(busy) {
+  const btn = document.getElementById('btn-encode');
+  btn.disabled = busy;
+  btn.textContent = busy ? 'Encoding…' : 'Encode';
+}
+
+function setDecodeUI(busy) {
+  const btn = document.getElementById('btn-decode');
+  btn.disabled = busy;
+  btn.textContent = busy ? 'Decoding…' : 'Decode Image';
+}
+
+function setProgress(id, pct) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.width   = pct + '%';
+  el.style.display = pct > 0 ? 'block' : 'none';
+}
+
+function showEncodeError(msg) { document.getElementById('encode-error').textContent = '⚠ ' + msg; }
+function showDecodeError(msg) { document.getElementById('decode-error').textContent = '⚠ ' + msg; }
+
+function flashBtn(id, label) {
+  const btn = document.getElementById(id);
+  const orig = btn.textContent;
+  btn.textContent = label;
+  setTimeout(function() { btn.textContent = orig; }, 2000);
+}
+
+// ── Live char count ──
+document.getElementById('pasteInput').addEventListener('input', function() {
+  const len = this.value.length;
+  document.getElementById('paste-char-count').textContent = len > 0 ? len.toLocaleString() + ' chars' : '';
+});
+
+// ── Drag & drop ──
+(function() {
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover',  function(e) { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', function()  { dz.classList.remove('over'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) {
+      currentFile = f;
+      document.getElementById('dropzone-label').textContent = f.name;
+      document.getElementById('encode-result').style.display = 'none';
+      document.getElementById('encode-error').textContent = '';
+    }
+  });
+})();
+</script>
+</body>
+</html>}
 .progress-fill {
   height: 100%;
   background: var(--accent);
