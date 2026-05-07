@@ -872,19 +872,47 @@ function onDecodeDone(blobData, mimeType, mode) {
 
   setDecodeUI(false);
 
-  const blob = new Blob([blobData], { type: mimeType });
+  let blob;
 
+  // FIX: rebuild blob correctly
+  if (blobData instanceof ArrayBuffer) {
+
+    blob = new Blob(
+      [new Uint8Array(blobData)],
+      { type: mimeType }
+    );
+
+  } else {
+
+    blob = new Blob(
+      [blobData],
+      { type: mimeType }
+    );
+  }
+
+  // cleanup old URL
   if (objectUrlActive) {
     URL.revokeObjectURL(objectUrlActive);
   }
 
+  // create fresh object URL
   const url = URL.createObjectURL(blob);
 
   objectUrlActive = url;
 
   const imgEl = document.getElementById('decoded-img');
 
-  imgEl.onload = () => {
+  // clear previous state
+  imgEl.removeAttribute('src');
+
+  imgEl.onerror = function() {
+
+    showDecodeError(
+      'Could not render decoded image. Data may be corrupted.'
+    );
+  };
+
+  imgEl.onload = function() {
 
     document.getElementById('decode-result').style.display = 'block';
 
@@ -899,9 +927,13 @@ function onDecodeDone(blobData, mimeType, mode) {
     window._decodedMimeType = mimeType;
   };
 
-  imgEl.src = url;
+  // IMPORTANT:
+  // delay setting src slightly for Android Chrome
+  requestAnimationFrame(() => {
+    imgEl.src = url;
+  });
 
-  setTimeout(() => {
+  setTimeout(function() {
     setProgress('decode-progress', 0);
   }, 1200);
 }
