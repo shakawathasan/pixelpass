@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pixelpass-v1';
+const CACHE_NAME = 'pixelpass-v2';
 const ASSETS = [
   '/',
   '/index.html'
