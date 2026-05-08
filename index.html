@@ -3,76 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#00ff9d">
+<meta name="theme-color" content="#35858E">
 <meta name="description" content="Offline image transfer via text chunks">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PixelPass">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0f' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='%2300ff9d' text-anchor='middle' dy='.3em' font-weight='bold'>PP</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23E6EEC9' width='192' height='192'/><text x='50%' y='50%' font-size='80' fill='%2335858E' text-anchor='middle' dy='.3em' font-weight='bold'>PP</text></svg>">
 <title>PixelPass — Offline Image Transfer</title>
 <style>
   :root {
-    --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
-    --accent: #00ff9d; --accent2: #ff3cac; --text: #e8e8f0;
-    --muted: #555570; --card: #0f0f18;
+    --bg: linear-gradient(180deg, #E6EEC9 0%, #C2D099 100%);
+    --surface: #F7F9E8;
+    --border: #C2D099;
+    --accent: #35858E;
+    --accent2: #7DA78C;
+    --text: #35858E;
+    --muted: rgba(53,133,142,0.65);
+    --card: #F4F7D7;
+    --page-shadow: rgba(53,133,142,0.08);
+  }
+  body.theme-night {
+    --bg: linear-gradient(180deg, #2A4A57 0%, #1F3A44 100%);
+    --surface: #2D5B60;
+    --border: #3F7D81;
+    --accent: #8CC3B5;
+    --accent2: #7DA78C;
+    --text: #E6EEC9;
+    --muted: rgba(230,238,201,0.75);
+    --card: #335B63;
+    --page-shadow: rgba(0,0,0,0.18);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; overflow-x: hidden; }
-  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,255,157,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,157,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  body::before { display: none; }
   .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; position: relative; z-index: 1; }
   header { text-align: center; margin-bottom: 2.5rem; padding-top: 2rem; }
   .logo { font-size: 0.72rem; font-family: 'Courier New', monospace; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 0.5rem; }
-  h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; line-height: 1; background: linear-gradient(135deg, #fff 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.6rem; }
+  h1 { font-size: clamp(2.2rem, 6vw, 3.5rem); font-weight: 800; line-height: 1; background: linear-gradient(135deg, #3C7F88 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.6rem; }
   .subtitle { color: var(--muted); font-size: 0.85rem; font-family: 'Courier New', monospace; }
-  .tabs { display: flex; margin-bottom: 1.75rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .tab { flex: 1; padding: 0.85rem; background: var(--surface); border: none; color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--border); }
+  .header-actions { margin-top: 1rem; }
+  .tabs { display: flex; margin-bottom: 1.75rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.85); }
+  .tab { flex: 1; padding: 0.85rem; background: var(--surface); border: none; color: var(--text); font-family: 'Courier New', monospace; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--border); }
   .tab:last-child { border-right: none; }
-  .tab:hover { color: var(--text); }
-  .tab.active { background: var(--accent); color: #000; font-weight: 700; }
+  .tab:hover { color: var(--accent); }
+  .tab.active { background: var(--accent); color: #ffffff; font-weight: 700; border-color: var(--accent); }
   .panel { display: none; }
   .panel.active { display: block; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 18px 35px var(--page-shadow); }
   .card-label { font-family: 'Courier New', monospace; font-size: 0.68rem; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
   .card-label::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
-  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
-  .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: rgba(0,255,157,0.04); }
+  .dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; background: #FFFFFF; }
+  .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: rgba(125,167,140,0.12); }
   .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
   .drop-icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
   .drop-text { color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.78rem; line-height: 1.6; }
   .drop-text strong { color: var(--text); }
-  .preview-img { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; margin: 0 auto; border: 1px solid var(--border); }
+  .preview-img { max-width: 100%; max-height: 80vh; object-fit: contain; display: block; margin: auto; border-radius: 8px; border: 1px solid var(--border); }
   .mode-selector { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-  .mode-btn { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); font-family: 'Courier New', monospace; font-size: 0.7rem; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
-  .mode-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .mode-btn { flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text); font-family: 'Courier New', monospace; font-size: 0.7rem; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .mode-btn.active { background: var(--accent); color: #ffffff; border-color: var(--accent); }
   .slider-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
   .slider-header { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
   .slider-label { font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
   .slider-val { font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); font-weight: 700; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
   .slider-hints { display: flex; justify-content: space-between; font-family: 'Courier New', monospace; font-size: 0.62rem; color: var(--muted); margin-top: 0.2rem; }
-  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; padding: 0.75rem 1rem; background: var(--surface); border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.72rem; }
+  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; padding: 0.75rem 1rem; background: #FFFFFF; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.72rem; }
   .stat { color: var(--muted); }
   .stat span { color: var(--accent); font-weight: 700; }
   .btn-row { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 1rem; }
   .btn { padding: 0.65rem 1.3rem; border-radius: 6px; border: none; font-family: 'Courier New', monospace; font-size: 0.76rem; letter-spacing: 0.05em; cursor: pointer; transition: all 0.18s; text-transform: uppercase; }
-  .btn-primary { background: var(--accent); color: #000; font-weight: 700; }
-  .btn-primary:hover { background: #00e088; transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #ffffff; font-weight: 700; }
+  .btn-primary:hover { background: #2f787f; transform: translateY(-1px); }
   .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger { background: transparent; color: var(--accent2); border: 1px solid rgba(255,60,172,0.4); }
-  .btn-danger:hover { background: rgba(255,60,172,0.08); }
-  .info-banner { background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.2); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); margin-bottom: 1rem; line-height: 1.7; }
+  .btn-danger { background: transparent; color: var(--accent2); border: 1px solid rgba(125,167,140,0.4); }
+  .btn-danger:hover { background: rgba(125,167,140,0.12); }
+  .info-banner { background: rgba(125,167,140,0.15); border: 1px solid rgba(194,208,153,0.65); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); margin-bottom: 1rem; line-height: 1.7; }
   .copy-flash { display: none; font-family: 'Courier New', monospace; font-size: 0.72rem; color: var(--accent); align-items: center; gap: 0.4rem; margin-top: 0.6rem; }
   .copy-flash.show { display: flex; }
-  .offline-badge { position: fixed; top: 1rem; right: 1rem; padding: 0.5rem 1rem; background: rgba(0,255,157,0.1); border: 1px solid rgba(0,255,157,0.3); border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--accent); display: none; z-index: 100; }
+  .offline-badge { position: fixed; top: 1rem; right: 1rem; padding: 0.5rem 1rem; background: rgba(53,133,142,0.12); border: 1px solid rgba(125,167,140,0.4); border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--accent); display: none; z-index: 100; }
   .offline-badge.show { display: block; }
-  .offline-badge.offline { background: rgba(255,60,172,0.1); border-color: rgba(255,60,172,0.3); color: var(--accent2); }
+  .offline-badge.offline { background: rgba(125,167,140,0.12); border-color: rgba(125,167,140,0.45); color: var(--accent2); }
   .progress-wrap { margin-top: 1rem; display: none; }
   .progress-wrap.show { display: block; }
-  .progress-bar-bg { background: var(--surface); border-radius: 99px; height: 3px; overflow: hidden; }
+  .progress-bar-bg { background: #E6EEC9; border-radius: 99px; height: 3px; overflow: hidden; }
   .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; width: 0%; transition: width 0.3s; }
-  .error-msg { display: none; background: rgba(255,60,172,0.08); border: 1px solid rgba(255,60,172,0.3); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--accent2); margin-top: 1rem; line-height: 1.5; }
+  .error-msg { display: none; background: rgba(125,167,140,0.15); border: 1px solid rgba(125,167,140,0.4); border-radius: 8px; padding: 0.85rem 1rem; font-family: 'Courier New', monospace; font-size: 0.75rem; color: var(--accent2); margin-top: 1rem; line-height: 1.5; }
   .error-msg.show { display: block; }
   .chunks-display { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--text); white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; margin-top: 1rem; }
   .paste-area { width: 100%; min-height: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.7rem; color: var(--text); resize: vertical; }
@@ -167,6 +185,9 @@
     <h1>PixelPass</h1>
     <p class="subtitle">image → base64 text → image &nbsp;|&nbsp; no server, no storage, offline</p>
   </header>
+  <div class="header-actions">
+    <button type="button" class="btn btn-secondary" id="themeToggle" onclick="toggleTheme()">🌙 Night mode</button>
+  </div>
 
   <div class="tabs">
     <button type="button" class="tab active" onclick="switchTab('encode')">📤 &nbsp;Encode (Sender)</button>
@@ -181,25 +202,28 @@
         <button type="button" class="mode-btn active" id="mode-exact" onclick="setMode('exact')">Exact</button>
         <button type="button" class="mode-btn" id="mode-optimized" onclick="setMode('optimized')">Optimized</button>
       </div>
+      <div class="info-banner">
+        Higher quality and larger resolutions generate massive text chunks that can freeze mobile browsers, crash low-memory devices, and fail during decoding. PixelPass limits OPTIMIZED mode for stable offline performance.
+      </div>
       <div id="optimized-settings" style="display: block;">
         <div class="slider-row">
           <div>
             <div class="slider-header">
               <span class="slider-label">Quality</span>
-              <span class="slider-val" id="qualityVal">75%</span>
+              <span class="slider-val" id="qualityVal">25%</span>
             </div>
-            <input type="range" id="qualitySlider" min="10" max="95" value="75"
+            <input type="range" id="qualitySlider" min="0" max="30" step="1" value="25"
               oninput="document.getElementById('qualityVal').textContent=this.value+'%'; recompress()">
-            <div class="slider-hints"><span>Smaller</span><span>Sharper</span></div>
+            <div class="slider-hints"><span>0%</span><span>30%</span></div>
           </div>
           <div>
             <div class="slider-header">
               <span class="slider-label">Max Resolution</span>
-              <span class="slider-val" id="sizeVal">800px</span>
+              <span class="slider-val" id="sizeVal">500px</span>
             </div>
-            <input type="range" id="sizeSlider" min="200" max="1920" step="100" value="800"
+            <input type="range" id="sizeSlider" min="1" max="500" step="1" value="500"
               oninput="document.getElementById('sizeVal').textContent=this.value+'px'; recompress()">
-            <div class="slider-hints"><span>200px</span><span>1920px</span></div>
+            <div class="slider-hints"><span>1px</span><span>500px</span></div>
           </div>
         </div>
       </div>
@@ -290,6 +314,32 @@
   let currentMode = 'optimized';
   let decodedDataUrl = '';
 
+  function setTheme(theme) {
+    document.body.classList.toggle('theme-night', theme === 'night');
+    document.body.classList.toggle('theme-day', theme === 'day');
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) {
+      toggle.textContent = theme === 'night' ? '☀️ Day mode' : '🌙 Night mode';
+    }
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.content = theme === 'night' ? '#2A4A57' : '#35858E';
+    }
+    localStorage.setItem('pixelpass-theme', theme);
+  }
+
+  function toggleTheme() {
+    const isNight = document.body.classList.contains('theme-night');
+    setTheme(isNight ? 'day' : 'night');
+  }
+
+  function initTheme() {
+    const saved = localStorage.getItem('pixelpass-theme');
+    setTheme(saved === 'night' ? 'night' : 'day');
+  }
+
+  initTheme();
+
   function setMode(mode) {
     currentMode = mode;
     document.getElementById('mode-exact').classList.toggle('active', mode === 'exact');
@@ -336,8 +386,21 @@
     prog.classList.add('show');
     fill.style.width = '10%';
 
-    const quality = currentMode === 'exact' ? 1.0 : parseInt(document.getElementById('qualitySlider').value) / 100;
-    const maxPx = currentMode === 'exact' ? 9999 : parseInt(document.getElementById('sizeSlider').value);
+    const rawQuality = parseInt(document.getElementById('qualitySlider').value);
+    const rawMaxPx = parseInt(document.getElementById('sizeSlider').value);
+    const quality = currentMode === 'exact'
+      ? 1.0
+      : Math.min(0.30, Math.max(0, rawQuality / 100));
+    const maxPx = currentMode === 'exact'
+      ? 9999
+      : Math.min(500, Math.max(1, rawMaxPx));
+
+    if (currentMode === 'optimized') {
+      document.getElementById('qualitySlider').value = Math.round(quality * 100);
+      document.getElementById('qualityVal').textContent = (quality * 100) + '%';
+      document.getElementById('sizeSlider').value = maxPx;
+      document.getElementById('sizeVal').textContent = maxPx + 'px';
+    }
 
     await new Promise(r => setTimeout(r, 0)); // Yield to avoid freeze
 
@@ -459,20 +522,20 @@
     const maxDim = Math.max(w, h);
     let recQuality, recMaxRes, recRisk;
     if (size > 10000000 || maxDim > 3000) {
-      recQuality = 0.3;
+      recQuality = 0.30;
       recMaxRes = 500;
       recRisk = 'Very High';
     } else if (size > 5000000 || maxDim > 2000) {
-      recQuality = 0.5;
-      recMaxRes = 800;
+      recQuality = 0.30;
+      recMaxRes = 500;
       recRisk = 'High';
     } else if (size > 2000000 || maxDim > 1500) {
-      recQuality = 0.7;
-      recMaxRes = 1200;
+      recQuality = 0.30;
+      recMaxRes = 500;
       recRisk = 'Medium';
     } else {
-      recQuality = 0.8;
-      recMaxRes = 1600;
+      recQuality = 0.30;
+      recMaxRes = 500;
       recRisk = 'Low';
     }
     // Estimate chunks
@@ -507,9 +570,11 @@
   }
 
   function applyRecommendations() {
-    const quality = parseFloat(document.getElementById('recQuality').textContent);
-    const maxRes = parseInt(document.getElementById('recMaxRes').textContent);
-    document.getElementById('qualitySlider').value = quality * 100;
+    const rawQuality = parseFloat(document.getElementById('recQuality').textContent);
+    const rawMaxRes = parseInt(document.getElementById('recMaxRes').textContent);
+    const quality = Math.min(0.30, Math.max(0, rawQuality));
+    const maxRes = Math.min(500, Math.max(1, rawMaxRes));
+    document.getElementById('qualitySlider').value = Math.round(quality * 100);
     document.getElementById('qualityVal').textContent = (quality * 100) + '%';
     document.getElementById('sizeSlider').value = maxRes;
     document.getElementById('sizeVal').textContent = maxRes + 'px';
